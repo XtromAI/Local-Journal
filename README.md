@@ -65,8 +65,8 @@ Built with modern, privacy-focused technologies:
 
 Local Journal is built with privacy as the foundation:
 
-- **No Analytics**: We don't track your usage patterns
-- **No Telemetry**: No crash reports or performance data sent externally
+- **Opt-in Analytics**: We may collect anonymous usage data only if you choose to opt in, helping improve the experience for our entire community
+- **Privacy-First Telemetry**: Anonymous crash reports and performance data collected only with your explicit consent
 - **No Account Required**: No sign-up, no user profiles, no cloud accounts
 - **Data Ownership**: You own and control all your data
 - **Transparent Processing**: Open source codebase for full transparency
