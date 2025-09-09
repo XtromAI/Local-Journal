@@ -1,6 +1,6 @@
 # **Local Journal: Technical Requirements Document (TRD)**
 
-## **1. Technical Overview**
+## **1. Executive Technical Summary**
 
 ### **1.1 System Architecture**
 The Local Journal application follows a **client-only architecture** with no server-side components. All data processing, storage, and AI interactions occur locally on the user's device, ensuring complete privacy and offline capability.
@@ -11,87 +11,119 @@ The Local Journal application follows a **client-only architecture** with no ser
 - **Performance-Oriented**: Optimized for mobile devices with efficient resource usage
 - **Security-Focused**: Local data encryption and secure API key management
 
-### **1.3 Technology Stack Summary**
+### **1.3 Finalized Technology Stack**
 - **Framework**: Flutter 3.x
 - **Language**: Dart 3.x
 - **Database**: Isar (NoSQL, local-only)
 - **AI Integration**: Google Gemini API
-- **State Management**: Provider + ChangeNotifier (Flutter recommended)
+- **State Management**: Provider + ChangeNotifier
 - **Vector Processing**: ml_linalg + vector_math libraries
-- **Build System**: Flutter build tools with platform-specific configurations
+- **Target Platform**: Android (Google Play Store)
+- **Future Platform**: iOS (same codebase)
 
 ## **2. Application Architecture**
 
-### **2.1 High-Level Architecture**
+### **2.1 High-Level System Design**
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    User Interface Layer                     │
+│                (Provider + ChangeNotifier)                  │
 ├─────────────────────────────────────────────────────────────┤
 │                   Business Logic Layer                      │
+│              (RAG Engine + Chat Controller)                 │
 ├─────────────────────────────────────────────────────────────┤
 │                    Data Access Layer                        │
+│              (Repository Pattern + Services)                │
 ├─────────────────────────────────────────────────────────────┤
 │                     Local Storage                           │
+│                 (Isar Database + Encryption)                │
 └─────────────────────────────────────────────────────────────┘
 │
 ├──── External API Integration (Gemini API)
 ```
 
-### **2.2 Component Architecture**
-
-#### **2.2.1 Core Components**
-- **ChatController**: Manages conversation state and AI interactions
-- **JournalService**: Handles journal creation, selection, and management
-- **EntryRepository**: Data access layer for journal entries
-- **RAGEngine**: Vector similarity search and context retrieval
+### **2.2 Core Components**
+- **ChatProvider**: Manages conversation state and AI interactions
+- **JournalProvider**: Handles journal creation, selection, and management
+- **SettingsProvider**: Manages API keys and user preferences
+- **RAGEngine**: Vector similarity search and context retrieval (ml_linalg)
 - **GeminiApiClient**: API communication with error handling
-- **StorageService**: Local data persistence and encryption
-- **EmbeddingService**: Vector generation and management
+- **EntryRepository**: Data access layer for journal entries
+- **EmbeddingService**: Vector generation and management (vector_math)
 
-#### **2.2.2 Data Flow Architecture**
+### **2.3 Data Flow Architecture**
 ```
-User Input → ChatController → GeminiApiClient → AI Response
+User Input → ChatProvider → GeminiApiClient → AI Response
      ↓              ↓              ↓
 RAGEngine ← EntryRepository ← StorageService
      ↓
 Context Injection → Enhanced AI Response
 ```
 
-### **2.3 Directory Structure**
+### **2.4 Project Structure**
 ```
 lib/
 ├── main.dart
 ├── app/
-│   ├── app.dart
-│   └── routes.dart
+│   ├── app.dart                    # App configuration
+│   └── routes.dart                 # Navigation setup
 ├── core/
 │   ├── constants/
+│   │   ├── app_constants.dart      # App-wide constants
+│   │   └── api_constants.dart      # API endpoints and keys
 │   ├── errors/
+│   │   ├── exceptions.dart         # Custom exceptions
+│   │   └── failures.dart          # Error handling
 │   ├── services/
+│   │   ├── storage_service.dart    # Local storage management
+│   │   └── encryption_service.dart # Data encryption
 │   └── utils/
+│       ├── vector_utils.dart       # Vector operations
+│       └── text_utils.dart         # Text preprocessing
 ├── data/
 │   ├── datasources/
+│   │   ├── local_datasource.dart   # Isar database interface
+│   │   └── api_datasource.dart     # Gemini API interface
 │   ├── models/
+│   │   ├── journal.dart            # Journal entity
+│   │   ├── journal_entry.dart      # Entry entity
+│   │   └── chat_message.dart       # Message entity
 │   └── repositories/
+│       ├── journal_repository.dart # Journal data operations
+│       └── entry_repository.dart   # Entry data operations
 ├── domain/
-│   ├── entities/
-│   ├── repositories/
+│   ├── entities/                   # Business objects
+│   ├── repositories/              # Repository interfaces
 │   └── usecases/
+│       ├── send_message.dart       # Chat interaction
+│       ├── finish_entry.dart       # Entry completion
+│       └── find_context.dart       # RAG retrieval
 ├── presentation/
-│   ├── controllers/
+│   ├── providers/
+│   │   ├── chat_provider.dart      # Chat state management
+│   │   ├── journal_provider.dart   # Journal state
+│   │   └── settings_provider.dart  # Settings state
 │   ├── pages/
+│   │   ├── main_page.dart          # Primary interface
+│   │   └── onboarding_page.dart    # First-time setup
 │   └── widgets/
+│       ├── chat_interface.dart     # Chat UI components
+│       ├── message_bubble.dart     # Message display
+│       ├── chat_controls.dart      # Input and buttons
+│       ├── entries_panel.dart      # Historical entries
+│       └── confirmation_dialog.dart # Modal confirmations
 └── features/
-    ├── chat/
-    ├── journal/
-    ├── entries/
-    └── settings/
+    ├── chat/                       # Chat feature module
+    ├── journal/                    # Journal management
+    ├── entries/                    # Entry management
+    ├── rag/                        # RAG implementation
+    └── settings/                   # App settings
 ```
 
-## **3. Data Architecture**
+## **3. Data Architecture & Database Design**
 
-### **3.1 Database Schema (Isar)**
+### **3.1 Isar Database Schema**
 
 #### **3.1.1 Journal Entity**
 ```dart
@@ -122,7 +154,7 @@ class JournalEntry {
   
   String summary;
   List<ChatMessage> conversation;
-  List<double> summaryEmbedding;
+  List<double> summaryEmbedding;  // 768-dimensional vector
   
   DateTime createdAt;
   DateTime completedAt;
@@ -141,9 +173,15 @@ class ChatMessage {
   DateTime timestamp;
   String? metadata; // For future extensibility
 }
+
+enum MessageType {
+  user,
+  ai,
+  system,
+}
 ```
 
-#### **3.1.4 API Key Storage**
+#### **3.1.4 User Settings Entity**
 ```dart
 @Collection()
 class UserSettings {
@@ -152,339 +190,200 @@ class UserSettings {
   @Encrypted()
   String? geminiApiKey;
   
-  String theme;
-  Map<String, dynamic> preferences;
+  String theme = 'dark';
+  Map<String, dynamic> preferences = {};
   DateTime updatedAt;
 }
 ```
 
-### **3.2 Data Relationships**
-- **One-to-Many**: Journal → JournalEntry
-- **Embedded**: JournalEntry → List<ChatMessage>
-- **Singleton**: UserSettings (single instance per installation)
-
-### **3.3 Vector Storage Strategy**
-- **Embedding Storage**: Float64List stored as List<double> in JournalEntry
-- **Similarity Search**: In-memory cosine similarity calculation
-- **Indexing**: Custom indexing for efficient vector retrieval
-- **Performance**: Batch processing for multiple similarity calculations
-
-## **4. API Integration Architecture**
-
-### **4.1 Gemini API Client**
-
-#### **4.1.1 API Endpoints Used**
-- **generateContent**: Main conversation responses
-- **embedContent**: Vector embedding generation
-
-#### **4.1.2 Request/Response Handling**
+### **3.2 Database Operations**
 ```dart
-class GeminiApiClient {
-  static const String baseUrl = 'https://generativelanguage.googleapis.com/v1';
-  
-  Future<GenerateResponse> generateContent({
-    required String prompt,
-    List<String>? context,
-  });
-  
-  Future<List<double>> embedContent(String text);
-  
-  // Error handling and retry logic
-  Future<T> _executeWithRetry<T>(Future<T> Function() operation);
+// Initialize database with encryption
+Future<Isar> initializeDatabase() async {
+  final dir = await getApplicationDocumentsDirectory();
+  return await Isar.open(
+    [JournalSchema, JournalEntrySchema, UserSettingsSchema],
+    directory: dir.path,
+    encryptionKey: await _getEncryptionKey(),
+  );
 }
-```
 
-#### **4.1.3 Error Handling Strategy**
-- **Network Errors**: Retry with exponential backoff
-- **API Rate Limits**: Queue management and throttling
-- **Invalid API Key**: User notification and re-authentication
-- **Timeout Handling**: Configurable timeout with user feedback
-
-### **4.2 Privacy-Preserving API Usage**
-- **No Personal Data**: Only crafted prompts sent to API
-- **Context Sanitization**: Historical context anonymized when possible
-- **Request Logging**: No logging of personal content
-- **Secure Transmission**: HTTPS with certificate pinning
-
-## **5. Retrieval-Augmented Generation (RAG) Implementation**
-
-### **5.1 RAG Pipeline Architecture**
-
-#### **5.1.1 Embedding Generation Process**
-```dart
-class EmbeddingService {
-  Future<List<double>> generateEmbedding(String text) async {
-    // 1. Text preprocessing and sanitization
-    // 2. API call to Gemini embedContent
-    // 3. Vector normalization
-    // 4. Return embedding vector
+// Repository pattern for data access
+class EntryRepository {
+  final Isar _isar;
+  
+  Future<List<JournalEntry>> getEntriesForJournal(int journalId) async {
+    return await _isar.journalEntrys
+        .filter()
+        .journalIdEqualTo(journalId)
+        .sortByCreatedAtDesc()
+        .findAll();
   }
   
-  Future<void> storeEntryEmbedding(JournalEntry entry) async {
-    // Generate and store embedding for completed entry
+  Future<void> saveEntry(JournalEntry entry) async {
+    await _isar.writeTxn(() async {
+      await _isar.journalEntrys.put(entry);
+    });
   }
 }
 ```
 
-#### **5.1.2 Vector Similarity Search**
+## **4. State Management Implementation**
+
+### **4.1 Provider Architecture**
+
+#### **4.1.1 Chat Provider**
 ```dart
-class RAGEngine {
-  Future<List<RelevantEntry>> findRelevantEntries({
-    required String query,
-    required int journalId,
-    int limit = 3,
-    double threshold = 0.7,
-  }) async {
-    // 1. Generate query embedding
-    // 2. Calculate cosine similarity with stored embeddings
-    // 3. Filter by threshold and journal context
-    // 4. Return ranked results
-  }
-  
-  double calculateCosineSimilarity(List<double> a, List<double> b);
-}
-```
-
-#### **5.1.3 Context Injection Strategy**
-```dart
-class ContextBuilder {
-  String buildPromptWithContext({
-    required String userMessage,
-    required List<RelevantEntry> context,
-    required ConversationHistory currentSession,
-  }) {
-    // 1. Format historical context
-    // 2. Include current conversation
-    // 3. Add CBT-based guidance prompts
-    // 4. Return complete prompt
-  }
-}
-```
-
-### **5.2 Vector Processing with Dart Libraries**
-
-#### **5.2.1 Enhanced RAG Engine with Libraries**
-```dart
-import 'package:ml_linalg/ml_linalg.dart';
-import 'package:vector_math/vector_math.dart';
-
-class RAGEngine {
-  Future<List<RelevantEntry>> findRelevantEntries({
-    required String query,
-    required int journalId,
-    int limit = 3,
-    double threshold = 0.7,
-  }) async {
-    // 1. Generate query embedding using Gemini API
-    final queryEmbedding = await _embeddingService.generateEmbedding(query);
-    final queryVector = Vector.fromList(queryEmbedding);
-    
-    // 2. Load stored embeddings for the journal
-    final storedEntries = await _entryRepository.getEntriesForJournal(journalId);
-    
-    // 3. Calculate similarities using optimized library functions
-    final similarities = <Entrysimilarity>[];
-    
-    for (final entry in storedEntries) {
-      if (entry.summaryEmbedding.isNotEmpty) {
-        final storedVector = Vector.fromList(entry.summaryEmbedding);
-        final similarity = _calculateOptimizedCosineSimilarity(queryVector, storedVector);
-        
-        if (similarity >= threshold) {
-          similarities.add(Entrysimilarity(
-            entry: entry,
-            similarity: similarity,
-          ));
-        }
-      }
-    }
-    
-    // 4. Sort by similarity and return top results
-    similarities.sort((a, b) => b.similarity.compareTo(a.similarity));
-    return similarities.take(limit).map((s) => s.entry).toList();
-  }
-  
-  double _calculateOptimizedCosineSimilarity(Vector a, Vector b) {
-    // Using vector_math for optimized operations
-    final dotProduct = a.dot(b);
-    final magnitudeA = a.length;
-    final magnitudeB = b.length;
-    
-    if (magnitudeA == 0 || magnitudeB == 0) return 0.0;
-    return dotProduct / (magnitudeA * magnitudeB);
-  }
-  
-  // Batch processing for multiple similarity calculations
-  List<double> calculateBatchSimilarities(
-    Vector queryVector,
-    List<Vector> storedVectors,
-  ) {
-    // Using ml_linalg for efficient batch operations
-    final Matrix storedMatrix = Matrix.fromRows(
-      storedVectors.map((v) => v.storage.toList()).toList(),
-    );
-    
-    // Efficient batch cosine similarity calculation
-    return _batchCosineSimilarity(queryVector, storedMatrix);
-  }
-  
-  List<double> _batchCosineSimilarity(Vector query, Matrix stored) {
-    // Optimized batch calculation using ml_linalg
-    final queryMatrix = Matrix.fromRows([query.storage.toList()]);
-    final dotProducts = queryMatrix * stored.transpose();
-    
-    // Calculate magnitudes efficiently
-    final queryMagnitude = query.length;
-    final storedMagnitudes = stored.rows.map((row) => 
-      Vector.fromList(row).length
-    ).toList();
-    
-    // Return normalized similarities
-    return dotProducts.getRow(0).map((dot, index) {
-      final magnitude = storedMagnitudes[index];
-      return magnitude > 0 ? dot / (queryMagnitude * magnitude) : 0.0;
-    }).toList();
-  }
-}
-```
-
-#### **5.2.2 Embedding Service with Vector Utilities**
-```dart
-import 'package:ml_linalg/ml_linalg.dart';
-
-class EmbeddingService {
-  final GeminiApiClient _apiClient;
-  
-  Future<List<double>> generateEmbedding(String text) async {
-    // 1. Text preprocessing
-    final cleanedText = _preprocessText(text);
-    
-    // 2. API call to Gemini embedContent
-    final rawEmbedding = await _apiClient.embedContent(cleanedText);
-    
-    // 3. Vector normalization using ml_linalg
-    final vector = Vector.fromList(rawEmbedding);
-    final normalizedVector = vector.normalize();
-    
-    return normalizedVector.storage.toList();
-  }
-  
-  Future<void> storeEntryEmbedding(JournalEntry entry) async {
-    final embedding = await generateEmbedding(entry.summary);
-    entry.summaryEmbedding = embedding;
-    await _entryRepository.updateEntry(entry);
-  }
-  
-  String _preprocessText(String text) {
-    // Text cleaning and normalization
-    return text
-        .toLowerCase()
-        .replaceAll(RegExp(r'[^\w\s]'), ' ')
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
-  }
-  
-  // Utility method for vector statistics
-  Map<String, double> getVectorStats(List<double> embedding) {
-    final vector = Vector.fromList(embedding);
-    return {
-      'magnitude': vector.length,
-      'mean': embedding.reduce((a, b) => a + b) / embedding.length,
-      'dimensions': embedding.length.toDouble(),
-    };
-  }
-}
-```
-
-## **6. User Interface Architecture**
-
-### **6.1 Widget Architecture**
-
-#### **6.1.1 Main Application Structure**
-```dart
-MaterialApp(
-  home: MainScaffold(
-    drawer: HistoricalEntriesPanel(),
-    body: ChatInterface(),
-    bottomNavigationBar: ChatControls(),
-  ),
-)
-```
-
-#### **6.1.2 Key UI Components**
-- **ChatInterface**: Main conversation view with message list
-- **MessageBubble**: Individual message display widget
-- **ChatControls**: Input field and action buttons
-- **HistoricalEntriesPanel**: Collapsible sidebar with past entries
-- **JournalSelector**: Dropdown for journal switching
-- **ConfirmationDialog**: Modal dialogs for critical actions
-
-#### **6.1.3 Responsive Design Implementation**
-```dart
-class ResponsiveLayout extends StatelessWidget {
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 600) {
-          return MobileLayout();
-        } else if (constraints.maxWidth < 1200) {
-          return TabletLayout();
-        } else {
-          return DesktopLayout();
-        }
-      },
-    );
-  }
-}
-```
-
-### **6.2 State Management Architecture**
-
-#### **6.2.1 Provider + ChangeNotifier Structure**
-```dart
-// Main app state providers
 class ChatProvider extends ChangeNotifier {
-  ConversationState _conversationState = ConversationState();
+  final GeminiApiClient _apiClient;
+  final RAGEngine _ragEngine;
+  final EntryRepository _entryRepository;
+  
   List<ChatMessage> _messages = [];
   bool _isLoading = false;
+  ConversationState _state = ConversationState.idle;
   
   // Getters
-  ConversationState get conversationState => _conversationState;
   List<ChatMessage> get messages => _messages;
   bool get isLoading => _isLoading;
+  ConversationState get state => _state;
+  bool get canSendMessage => _state == ConversationState.active && !_isLoading;
   
-  // Methods
+  // Core methods
   Future<void> sendMessage(String content) async {
-    // Implementation
-    notifyListeners();
+    if (!canSendMessage) return;
+    
+    _setLoading(true);
+    _addMessage(ChatMessage(
+      content: content,
+      type: MessageType.user,
+      timestamp: DateTime.now(),
+    ));
+    
+    try {
+      // Get relevant context from RAG
+      final context = await _ragEngine.findRelevantEntries(
+        query: content,
+        journalId: _selectedJournalId,
+      );
+      
+      // Generate AI response with context
+      final response = await _apiClient.generateContent(
+        prompt: _buildPromptWithContext(content, context),
+      );
+      
+      _addMessage(ChatMessage(
+        content: response,
+        type: MessageType.ai,
+        timestamp: DateTime.now(),
+      ));
+      
+    } catch (e) {
+      _addMessage(ChatMessage(
+        content: 'I apologize, but I encountered an error. Please try again.',
+        type: MessageType.ai,
+        timestamp: DateTime.now(),
+      ));
+    } finally {
+      _setLoading(false);
+    }
   }
   
   Future<void> finishEntry() async {
-    // Implementation
+    if (_messages.isEmpty) return;
+    
+    _setLoading(true);
+    
+    try {
+      // Generate summary
+      final summary = await _apiClient.generateSummary(_messages);
+      
+      // Create journal entry
+      final entry = JournalEntry()
+        ..journalId = _selectedJournalId
+        ..summary = summary
+        ..conversation = _messages
+        ..createdAt = DateTime.now()
+        ..completedAt = DateTime.now()
+        ..isCompleted = true;
+      
+      // Generate and store embedding
+      entry.summaryEmbedding = await _apiClient.embedContent(summary);
+      
+      // Save to database
+      await _entryRepository.saveEntry(entry);
+      
+      // Reset conversation
+      _resetConversation();
+      
+    } catch (e) {
+      // Handle error
+    } finally {
+      _setLoading(false);
+    }
+  }
+  
+  void _addMessage(ChatMessage message) {
+    _messages.add(message);
     notifyListeners();
   }
   
-  void clearConversation() {
+  void _setLoading(bool loading) {
+    _isLoading = loading;
+    notifyListeners();
+  }
+  
+  void _resetConversation() {
     _messages.clear();
-    _conversationState = ConversationState();
+    _state = ConversationState.idle;
     notifyListeners();
   }
 }
 
+enum ConversationState { idle, active, finishing }
+```
+
+#### **4.1.2 Journal Provider**
+```dart
 class JournalProvider extends ChangeNotifier {
+  final JournalRepository _journalRepository;
+  final EntryRepository _entryRepository;
+  
   List<Journal> _journals = [];
   Journal? _selectedJournal;
   List<JournalEntry> _entries = [];
+  bool _isLoading = false;
   
   // Getters
   List<Journal> get journals => _journals;
   Journal? get selectedJournal => _selectedJournal;
   List<JournalEntry> get entries => _entries;
+  bool get isLoading => _isLoading;
   
-  // Methods
-  Future<void> createJournal(String name) async {
-    // Implementation
-    notifyListeners();
+  // Initialization
+  Future<void> initialize() async {
+    _setLoading(true);
+    await _loadJournals();
+    if (_journals.isNotEmpty && _selectedJournal == null) {
+      await selectJournal(_journals.first);
+    }
+    _setLoading(false);
+  }
+  
+  // Journal management
+  Future<void> createJournal(String name, {String? description}) async {
+    final journal = Journal()
+      ..name = name
+      ..description = description
+      ..createdAt = DateTime.now()
+      ..updatedAt = DateTime.now();
+    
+    await _journalRepository.saveJournal(journal);
+    await _loadJournals();
+    
+    if (_selectedJournal == null) {
+      await selectJournal(journal);
+    }
   }
   
   Future<void> selectJournal(Journal journal) async {
@@ -493,65 +392,71 @@ class JournalProvider extends ChangeNotifier {
     notifyListeners();
   }
   
-  Future<void> _loadEntries() async {
-    // Load entries for selected journal
-  }
-}
-
-class SettingsProvider extends ChangeNotifier {
-  String? _apiKey;
-  ThemeMode _themeMode = ThemeMode.dark;
-  Map<String, dynamic> _preferences = {};
-  
-  // Getters
-  String? get apiKey => _apiKey;
-  ThemeMode get themeMode => _themeMode;
-  Map<String, dynamic> get preferences => _preferences;
-  
-  // Methods
-  Future<void> setApiKey(String apiKey) async {
-    _apiKey = apiKey;
-    await _saveApiKey(apiKey);
+  Future<void> _loadJournals() async {
+    _journals = await _journalRepository.getAllJournals();
     notifyListeners();
   }
   
-  Future<void> _saveApiKey(String apiKey) async {
-    // Secure storage implementation
+  Future<void> _loadEntries() async {
+    if (_selectedJournal != null) {
+      _entries = await _entryRepository.getEntriesForJournal(_selectedJournal!.id);
+      notifyListeners();
+    }
+  }
+  
+  void _setLoading(bool loading) {
+    _isLoading = loading;
+    notifyListeners();
   }
 }
 ```
 
-#### **6.2.2 Provider Setup and Dependency Injection**
+#### **4.1.3 App Provider Setup**
 ```dart
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider<ChatProvider>(
-          create: (_) => ChatProvider(),
+        // Core providers
+        ChangeNotifierProvider<SettingsProvider>(
+          create: (_) => SettingsProvider()..initialize(),
         ),
         ChangeNotifierProvider<JournalProvider>(
-          create: (_) => JournalProvider(),
+          create: (_) => JournalProvider(
+            journalRepository: getIt<JournalRepository>(),
+            entryRepository: getIt<EntryRepository>(),
+          )..initialize(),
         ),
-        ChangeNotifierProvider<SettingsProvider>(
-          create: (_) => SettingsProvider(),
-        ),
-        // Proxy providers for dependencies
-        ProxyProvider2<JournalProvider, SettingsProvider, RAGEngine>(
-          update: (_, journalProvider, settingsProvider, __) => 
-            RAGEngine(
-              journalProvider: journalProvider,
+        
+        // Dependent providers
+        ChangeNotifierProxyProvider2<SettingsProvider, JournalProvider, ChatProvider>(
+          create: (_) => ChatProvider(
+            apiClient: getIt<GeminiApiClient>(),
+            ragEngine: getIt<RAGEngine>(),
+            entryRepository: getIt<EntryRepository>(),
+          ),
+          update: (_, settingsProvider, journalProvider, chatProvider) {
+            chatProvider?.updateDependencies(
               apiKey: settingsProvider.apiKey,
-            ),
+              selectedJournalId: journalProvider.selectedJournal?.id,
+            );
+            return chatProvider ?? ChatProvider(
+              apiClient: getIt<GeminiApiClient>(),
+              ragEngine: getIt<RAGEngine>(),
+              entryRepository: getIt<EntryRepository>(),
+            );
+          },
         ),
       ],
       child: Consumer<SettingsProvider>(
         builder: (context, settingsProvider, child) {
           return MaterialApp(
             title: 'Local Journal',
-            theme: ThemeData.dark(), // Always dark mode as specified
-            home: MainScaffold(),
+            theme: ThemeData.dark(), // Always dark mode
+            home: settingsProvider.apiKey == null 
+                ? OnboardingPage() 
+                : MainPage(),
           );
         },
       ),
@@ -560,29 +465,582 @@ class MyApp extends StatelessWidget {
 }
 ```
 
-#### **6.2.2 State Persistence**
-- **Chat State**: Persist active conversation to survive app restarts
-- **UI State**: Remember panel states, selected journal, etc.
-- **Settings State**: API key, preferences, theme selection
+## **5. AI Integration & RAG Implementation**
+
+### **5.1 Gemini API Client**
+```dart
+class GeminiApiClient {
+  static const String baseUrl = 'https://generativelanguage.googleapis.com/v1';
+  final http.Client _httpClient;
+  final String _apiKey;
+  
+  GeminiApiClient({required String apiKey}) 
+      : _apiKey = apiKey,
+        _httpClient = http.Client();
+  
+  Future<String> generateContent({
+    required String prompt,
+    List<String>? context,
+  }) async {
+    final fullPrompt = _buildPromptWithContext(prompt, context);
+    
+    final response = await _executeWithRetry(() async {
+      return await _httpClient.post(
+        Uri.parse('$baseUrl/models/gemini-pro:generateContent'),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': _apiKey,
+        },
+        body: json.encode({
+          'contents': [{
+            'parts': [{'text': fullPrompt}]
+          }],
+          'generationConfig': {
+            'temperature': 0.7,
+            'maxOutputTokens': 1024,
+          },
+        }),
+      );
+    });
+    
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data['candidates'][0]['content']['parts'][0]['text'];
+    } else {
+      throw ApiException('Failed to generate content: ${response.statusCode}');
+    }
+  }
+  
+  Future<List<double>> embedContent(String text) async {
+    final response = await _executeWithRetry(() async {
+      return await _httpClient.post(
+        Uri.parse('$baseUrl/models/embedding-001:embedContent'),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': _apiKey,
+        },
+        body: json.encode({
+          'model': 'models/embedding-001',
+          'content': {
+            'parts': [{'text': text}]
+          },
+        }),
+      );
+    });
+    
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final values = data['embedding']['values'] as List;
+      return values.cast<double>();
+    } else {
+      throw ApiException('Failed to embed content: ${response.statusCode}');
+    }
+  }
+  
+  String _buildPromptWithContext(String prompt, List<String>? context) {
+    final buffer = StringBuffer();
+    
+    // CBT-based system prompt
+    buffer.writeln('''
+You are a supportive AI journal companion trained in Cognitive Behavioral Therapy (CBT) principles. 
+Your role is to help users explore their thoughts and feelings through gentle questioning and reflection.
+
+Guidelines:
+- Ask open-ended questions that encourage deeper reflection
+- Help identify patterns in thinking and behavior
+- Provide supportive, non-judgmental responses
+- Use CBT techniques like thought challenging when appropriate
+- Keep responses concise but meaningful
+- Address the user as "you" not "user"
+''');
+    
+    // Add historical context if available
+    if (context != null && context.isNotEmpty) {
+      buffer.writeln('\nRelevant context from previous entries:');
+      for (final contextItem in context) {
+        buffer.writeln('- $contextItem');
+      }
+      buffer.writeln();
+    }
+    
+    buffer.writeln('User message: $prompt');
+    buffer.writeln('\nProvide a supportive response:');
+    
+    return buffer.toString();
+  }
+  
+  Future<T> _executeWithRetry<T>(Future<T> Function() operation) async {
+    int attempts = 0;
+    const maxAttempts = 3;
+    const baseDelay = Duration(seconds: 1);
+    
+    while (attempts < maxAttempts) {
+      try {
+        return await operation();
+      } catch (e) {
+        attempts++;
+        if (attempts == maxAttempts) rethrow;
+        
+        // Exponential backoff
+        await Future.delayed(baseDelay * (1 << (attempts - 1)));
+      }
+    }
+    
+    throw Exception('Max retry attempts reached');
+  }
+}
+```
+
+### **5.2 RAG Engine with Vector Libraries**
+```dart
+import 'package:ml_linalg/ml_linalg.dart';
+import 'package:vector_math/vector_math.dart';
+
+class RAGEngine {
+  final EntryRepository _entryRepository;
+  final GeminiApiClient _apiClient;
+  
+  RAGEngine({
+    required EntryRepository entryRepository,
+    required GeminiApiClient apiClient,
+  }) : _entryRepository = entryRepository,
+       _apiClient = apiClient;
+  
+  Future<List<String>> findRelevantEntries({
+    required String query,
+    required int journalId,
+    int limit = 3,
+    double threshold = 0.7,
+  }) async {
+    // Generate query embedding
+    final queryEmbedding = await _apiClient.embedContent(query);
+    final queryVector = Vector.fromList(queryEmbedding);
+    
+    // Get stored entries with embeddings
+    final entries = await _entryRepository.getEntriesForJournal(journalId);
+    final validEntries = entries.where((e) => e.summaryEmbedding.isNotEmpty).toList();
+    
+    if (validEntries.isEmpty) return [];
+    
+    // Calculate similarities using optimized vector operations
+    final similarities = <EntryWithSimilarity>[];
+    
+    for (final entry in validEntries) {
+      final storedVector = Vector.fromList(entry.summaryEmbedding);
+      final similarity = _calculateCosineSimilarity(queryVector, storedVector);
+      
+      if (similarity >= threshold) {
+        similarities.add(EntryWithSimilarity(
+          entry: entry,
+          similarity: similarity,
+        ));
+      }
+    }
+    
+    // Sort by similarity and return summaries
+    similarities.sort((a, b) => b.similarity.compareTo(a.similarity));
+    return similarities
+        .take(limit)
+        .map((e) => e.entry.summary)
+        .toList();
+  }
+  
+  double _calculateCosineSimilarity(Vector a, Vector b) {
+    final dotProduct = a.dot(b);
+    final magnitudeA = a.length;
+    final magnitudeB = b.length;
+    
+    if (magnitudeA == 0 || magnitudeB == 0) return 0.0;
+    return dotProduct / (magnitudeA * magnitudeB);
+  }
+  
+  // Batch processing for better performance
+  List<double> calculateBatchSimilarities(
+    Vector queryVector,
+    List<Vector> storedVectors,
+  ) {
+    if (storedVectors.isEmpty) return [];
+    
+    // Create matrix from stored vectors for batch processing
+    final storedMatrix = Matrix.fromRows(
+      storedVectors.map((v) => v.storage).toList(),
+    );
+    
+    // Calculate batch similarities using ml_linalg
+    return _batchCosineSimilarity(queryVector, storedMatrix);
+  }
+  
+  List<double> _batchCosineSimilarity(Vector query, Matrix stored) {
+    // Efficient batch calculation
+    final queryMatrix = Matrix.fromRows([query.storage]);
+    final dotProducts = queryMatrix * stored.transpose();
+    
+    final queryMagnitude = query.length;
+    final storedMagnitudes = stored.rows.map((row) {
+      final vector = Vector.fromList(row);
+      return vector.length;
+    }).toList();
+    
+    // Normalize results
+    return dotProducts.getRow(0).asMap().entries.map((entry) {
+      final index = entry.key;
+      final dotProduct = entry.value;
+      final storedMagnitude = storedMagnitudes[index];
+      
+      return storedMagnitude > 0 
+          ? dotProduct / (queryMagnitude * storedMagnitude) 
+          : 0.0;
+    }).toList();
+  }
+}
+
+class EntryWithSimilarity {
+  final JournalEntry entry;
+  final double similarity;
+  
+  EntryWithSimilarity({
+    required this.entry,
+    required this.similarity,
+  });
+}
+```
+
+## **6. User Interface Implementation**
+
+### **6.1 Main Application Interface**
+```dart
+class MainPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[900],
+      drawer: const HistoricalEntriesPanel(),
+      appBar: AppBar(
+        title: Consumer<JournalProvider>(
+          builder: (context, journalProvider, child) {
+            return Text(journalProvider.selectedJournal?.name ?? 'Local Journal');
+          },
+        ),
+        backgroundColor: Colors.grey[850],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.book),
+            onPressed: () => _showJournalSelector(context),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ChatInterface(),
+          ),
+          ChatControls(),
+        ],
+      ),
+    );
+  }
+  
+  void _showJournalSelector(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => JournalSelectorDialog(),
+    );
+  }
+}
+```
+
+### **6.2 Chat Interface**
+```dart
+class ChatInterface extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ChatProvider>(
+      builder: (context, chatProvider, child) {
+        if (chatProvider.messages.isEmpty) {
+          return const EmptyStateWidget();
+        }
+        
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: chatProvider.messages.length,
+          itemBuilder: (context, index) {
+            final message = chatProvider.messages[index];
+            return MessageBubble(
+              message: message,
+              isUser: message.type == MessageType.user,
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class MessageBubble extends StatelessWidget {
+  final ChatMessage message;
+  final bool isUser;
+  
+  const MessageBubble({
+    Key? key,
+    required this.message,
+    required this.isUser,
+  }) : super(key: key);
+  
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isUser ? Colors.blue[600] : Colors.grey[800],
+          borderRadius: BorderRadius.circular(20),
+        ),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.8,
+        ),
+        child: Text(
+          message.content,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+          ),
+        ),
+      ),
+    );
+  }
+}
+```
+
+### **6.3 Chat Controls**
+```dart
+class ChatControls extends StatefulWidget {
+  @override
+  State<ChatControls> createState() => _ChatControlsState();
+}
+
+class _ChatControlsState extends State<ChatControls> {
+  final _textController = TextEditingController();
+  bool _hasText = false;
+  
+  @override
+  void initState() {
+    super.initState();
+    _textController.addListener(_onTextChanged);
+  }
+  
+  void _onTextChanged() {
+    setState(() {
+      _hasText = _textController.text.trim().isNotEmpty;
+    });
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ChatProvider>(
+      builder: (context, chatProvider, child) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey[850],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 4,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Message input
+              TextField(
+                controller: _textController,
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Share what\'s on your mind...',
+                  hintStyle: TextStyle(color: Colors.grey[400]),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide(color: Colors.grey[600]!),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide(color: Colors.grey[600]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide(color: Colors.blue[400]!),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[800],
+                ),
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Action buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _hasText && chatProvider.canSendMessage
+                          ? () => _sendMessage(chatProvider)
+                          : null,
+                      icon: chatProvider.isLoading 
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.psychology),
+                      label: const Text('Go Deeper'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue[600],
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(width: 12),
+                  
+                  ElevatedButton.icon(
+                    onPressed: chatProvider.messages.isNotEmpty && !chatProvider.isLoading
+                        ? () => _finishEntry(context, chatProvider)
+                        : null,
+                    icon: const Icon(Icons.check),
+                    label: const Text('Finish Entry'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[600],
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    ),
+                  ),
+                  
+                  const SizedBox(width: 12),
+                  
+                  IconButton(
+                    onPressed: chatProvider.messages.isNotEmpty && !chatProvider.isLoading
+                        ? () => _cancelEntry(context, chatProvider)
+                        : null,
+                    icon: const Icon(Icons.close),
+                    color: Colors.red[400],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+  
+  void _sendMessage(ChatProvider chatProvider) {
+    final message = _textController.text.trim();
+    if (message.isNotEmpty) {
+      chatProvider.sendMessage(message);
+      _textController.clear();
+    }
+  }
+  
+  void _finishEntry(BuildContext context, ChatProvider chatProvider) {
+    showDialog(
+      context: context,
+      builder: (context) => ConfirmationDialog(
+        title: 'Finish Entry',
+        content: 'Are you ready to complete this journal entry? This will generate a summary and save your conversation.',
+        confirmText: 'Finish Entry',
+        onConfirm: () {
+          Navigator.of(context).pop();
+          chatProvider.finishEntry();
+        },
+      ),
+    );
+  }
+  
+  void _cancelEntry(BuildContext context, ChatProvider chatProvider) {
+    showDialog(
+      context: context,
+      builder: (context) => ConfirmationDialog(
+        title: 'Cancel Entry',
+        content: 'Are you sure you want to cancel? Your current conversation will be lost.',
+        confirmText: 'Cancel Entry',
+        isDestructive: true,
+        onConfirm: () {
+          Navigator.of(context).pop();
+          chatProvider.cancelEntry();
+        },
+      ),
+    );
+  }
+}
+```
+
+### **6.4 Confirmation Dialog**
+```dart
+class ConfirmationDialog extends StatelessWidget {
+  final String title;
+  final String content;
+  final String confirmText;
+  final bool isDestructive;
+  final VoidCallback onConfirm;
+  
+  const ConfirmationDialog({
+    Key? key,
+    required this.title,
+    required this.content,
+    required this.confirmText,
+    required this.onConfirm,
+    this.isDestructive = false,
+  }) : super(key: key);
+  
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.grey[850],
+      title: Text(
+        title,
+        style: const TextStyle(color: Colors.white),
+      ),
+      content: Text(
+        content,
+        style: TextStyle(color: Colors.grey[300]),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: onConfirm,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isDestructive ? Colors.red[600] : Colors.blue[600],
+          ),
+          child: Text(confirmText),
+        ),
+      ],
+    );
+  }
+}
+```
 
 ## **7. Security & Privacy Implementation**
 
-### **7.1 Local Data Security**
-
-#### **7.1.1 Database Encryption**
+### **7.1 Secure Storage**
 ```dart
-// Isar encryption configuration
-await Isar.open(
-  [JournalSchema, JournalEntrySchema, UserSettingsSchema],
-  directory: dir.path,
-  encryptionKey: await _getEncryptionKey(),
-);
-```
-
-#### **7.1.2 API Key Management**
-```dart
-class SecureStorage {
-  static const _storage = FlutterSecureStorage();
+class SecureStorageService {
+  static const FlutterSecureStorage _storage = FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+    ),
+    iOptions: IOSOptions(
+      accessibility: IOSAccessibility.first_unlock_this_device,
+    ),
+  );
   
   Future<void> storeApiKey(String apiKey) async {
     await _storage.write(key: 'gemini_api_key', value: apiKey);
@@ -591,203 +1049,126 @@ class SecureStorage {
   Future<String?> getApiKey() async {
     return await _storage.read(key: 'gemini_api_key');
   }
-}
-```
-
-### **7.2 Privacy Controls**
-- **Data Export**: JSON/CSV export functionality
-- **Data Deletion**: Secure deletion with overwrite
-- **Local Processing**: No cloud analytics or tracking
-- **Minimal Permissions**: Only necessary device permissions
-
-### **7.3 Network Security**
-- **Certificate Pinning**: Prevent MITM attacks
-- **Request Validation**: Sanitize all API requests
-- **Rate Limiting**: Prevent API abuse
-- **Timeout Management**: Avoid hanging requests
-
-## **8. Technical Decisions Required**
-
-### **8.1 State Management Solution** ✅ **DECIDED**
-**Selected**: Provider + ChangeNotifier (Flutter recommended)
-
-**Rationale**: 
-- Simple and intuitive for team development
-- Excellent Flutter ecosystem integration
-- Mature, well-documented, and widely adopted
-- Efficient for the app's state complexity level
-- Easy testing and debugging capabilities
-
-**Implementation**: See Section 6.2 for detailed Provider architecture
-
-### **8.2 Vector Processing Strategy** ✅ **DECIDED**
-**Selected**: Dart libraries with optimized vector operations
-
-**Chosen Libraries:**
-- **`ml_linalg`**: Linear algebra operations optimized for ML workloads
-- **`vector_math`**: Core vector mathematical operations and utilities  
-- **`collection`**: Enhanced collection utilities for data manipulation
-
-**Rationale:**
-- **Performance**: Native Dart implementation with optimized linear algebra operations
-- **No Dependencies**: Pure Dart solution maintaining privacy and simplicity
-- **Flexibility**: Full control over vector processing algorithms
-- **Maintainability**: Well-established libraries with active maintenance
-- **Size Efficiency**: Smaller footprint compared to full ML frameworks
-
-**Implementation**: See Section 5.2 for detailed vector processing architecture
-
-### **8.3 Build Configuration** ✅ **DECIDED**
-**Selected**: Android-first with iOS compatibility planning
-
-**Current Target:**
-- **Primary Platform**: Android (Google Play Store distribution)
-- **Future Platform**: iOS (same codebase, future release)
-- **Development Focus**: Android optimization with cross-platform code structure
-
-**Build Requirements:**
-- Android APK and AAB (Android App Bundle) for Play Store
-- Code structure maintained for easy iOS compilation
-- Play Store compliance and optimization
-- Android-specific performance optimizations
-
-**Implementation**: See Section 10.2 for detailed build configuration
-
-### **8.4 Testing Strategy** ✅ **DECIDED**
-**Selected**: Multi-layer comprehensive testing approach
-
-**Testing Pyramid Structure:**
-```
-     Integration Tests (20%)
-    ╱                        ╲
-   Widget Tests (30%)
-  ╱                          ╲
- Unit Tests (50%)
-```
-
-**Coverage Targets:**
-- **Unit Tests**: 80%+ coverage of core business logic
-- **Widget Tests**: 100% of critical UI components  
-- **Integration Tests**: All major user workflows
-- **Performance Tests**: Key operations under realistic load
-
-**Rationale**: Privacy-first architecture with local AI processing requires thorough testing of core algorithms, UI interactions, and system integration while maintaining fast development cycles.
-
-**Implementation**: See Section 13 for detailed testing architecture
-
-## **9. Performance Requirements**
-
-### **9.1 Response Time Targets**
-- **App Launch**: < 2 seconds cold start
-- **AI Response**: < 3 seconds including network
-- **Vector Search**: < 100ms for similarity calculation
-- **UI Transitions**: < 16ms for 60fps animations
-- **Database Operations**: < 50ms for typical queries
-
-### **9.2 Memory Management**
-```dart
-class MemoryManager {
-  // Conversation history limits
-  static const maxMessagesInMemory = 100;
-  static const maxEmbeddingsInCache = 1000;
   
-  // Garbage collection triggers
-  void cleanupOldConversations();
-  void clearEmbeddingCache();
-  void optimizeDatabase();
+  Future<void> deleteApiKey() async {
+    await _storage.delete(key: 'gemini_api_key');
+  }
+  
+  Future<void> clearAll() async {
+    await _storage.deleteAll();
+  }
 }
 ```
 
-### **9.3 Storage Optimization**
-- **Compression**: Compress conversation data
-- **Cleanup**: Automatic cleanup of temporary data
-- **Efficient Indexing**: Optimize Isar indexes for common queries
-- **Vector Storage**: Efficient float array storage
+### **7.2 Database Encryption**
+```dart
+class DatabaseService {
+  static Isar? _instance;
+  
+  static Future<Isar> get instance async {
+    _instance ??= await _initializeDatabase();
+    return _instance!;
+  }
+  
+  static Future<Isar> _initializeDatabase() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final encryptionKey = await _getOrCreateEncryptionKey();
+    
+    return await Isar.open(
+      [JournalSchema, JournalEntrySchema, UserSettingsSchema],
+      directory: dir.path,
+      encryptionKey: encryptionKey,
+      name: 'local_journal',
+    );
+  }
+  
+  static Future<List<int>> _getOrCreateEncryptionKey() async {
+    const keyName = 'database_encryption_key';
+    
+    try {
+      final keyString = await SecureStorageService._storage.read(key: keyName);
+      if (keyString != null) {
+        return base64Decode(keyString);
+      }
+    } catch (e) {
+      // Key doesn't exist, create new one
+    }
+    
+    // Generate new encryption key
+    final key = List<int>.generate(32, (i) => Random.secure().nextInt(256));
+    final keyString = base64Encode(key);
+    
+    await SecureStorageService._storage.write(key: keyName, value: keyString);
+    return key;
+  }
+}
+```
 
-## **10. Development & Deployment**
+## **8. Build Configuration & Deployment**
 
-### **10.1 Development Environment**
+### **8.1 Dependencies**
 ```yaml
-# pubspec.yaml key dependencies
+# pubspec.yaml
+name: local_journal
+description: Privacy-first AI-powered journaling application
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.0.0"
+
 dependencies:
-  flutter: ^3.0.0
+  flutter:
+    sdk: flutter
+  
+  # Core dependencies
   isar: ^3.1.0
   isar_flutter_libs: ^3.1.0
-  http: ^1.1.0
-  flutter_secure_storage: ^9.0.0
   path_provider: ^2.1.0
-  provider: ^6.1.0  # State management
-  ml_linalg: ^13.19.0  # Linear algebra for vector operations
-  vector_math: ^2.1.4  # Core vector mathematical operations
-  collection: ^1.17.0  # Enhanced collection utilities
+  flutter_secure_storage: ^9.0.0
+  provider: ^6.1.0
+  
+  # Networking
+  http: ^1.1.0
+  
+  # Vector processing
+  ml_linalg: ^13.19.0
+  vector_math: ^2.1.4
+  collection: ^1.17.0
+  
+  # Utilities
+  intl: ^0.18.0
+  uuid: ^4.0.0
 
 dev_dependencies:
-  build_runner: ^2.4.0
-  isar_generator: ^3.1.0
   flutter_test:
     sdk: flutter
-  mockito: ^5.4.0              # Mocking for unit tests
-  integration_test: ^0.20.0    # Flutter integration testing
-  patrol: ^2.2.0              # Enhanced integration testing
-  golden_toolkit: ^0.15.0     # Widget visual regression testing
-  leak_tracker: ^0.1.0        # Memory leak detection
-  test_coverage: ^1.0.0       # Coverage reporting
-```
+  flutter_lints: ^3.0.0
+  
+  # Code generation
+  build_runner: ^2.4.0
+  isar_generator: ^3.1.0
+  
+  # Testing
+  mockito: ^5.4.0
+  integration_test: ^0.20.0
+  patrol: ^2.2.0
+  golden_toolkit: ^0.15.0
+  leak_tracker: ^0.1.0
+  test_coverage: ^1.0.0
 
-### **10.2 Build Configuration**
-```yaml
-# Platform-specific build settings for Android-first development
-android:
-  minSdkVersion: 21  # Android 5.0 - good device coverage
-  compileSdkVersion: 34  # Latest Android SDK
-  targetSdkVersion: 34  # Target latest for Play Store
-  
-  # Play Store optimization
-  buildTypes:
-    release:
-      shrinkResources: true
-      minifyEnabled: true
-      proguardFiles:
-        - proguard-android-optimize.txt
-        - proguard-rules.pro
-      signingConfig: release
-  
-  # Android App Bundle (AAB) for Play Store
-  bundle:
-    language:
-      enableSplit: true
-    density:
-      enableSplit: true
-    abi:
-      enableSplit: true
-
-# iOS configuration (for future compatibility)
-ios:
-  deployment_target: '12.0'  # Ready for future iOS release
-  
-# Flutter build configuration
 flutter:
-  generate: true
   uses-material-design: true
+  generate: true
   
-  # Assets and fonts for dark theme
   assets:
-    - assets/icons/
     - assets/images/
-  
-  fonts:
-    - family: Roboto
-      fonts:
-        - asset: fonts/Roboto-Regular.ttf
-        - asset: fonts/Roboto-Medium.ttf
-          weight: 500
-        - asset: fonts/Roboto-Bold.ttf
-          weight: 700
+    - assets/icons/
 ```
 
-#### **10.2.1 Play Store Preparation**
-```yaml
-# android/app/build.gradle additions for Play Store
+### **8.2 Android Configuration**
+```gradle
+// android/app/build.gradle
 android {
     compileSdkVersion 34
     ndkVersion flutter.ndkVersion
@@ -797,6 +1178,10 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
     defaultConfig {
         applicationId "com.localjournal.app"
         minSdkVersion 21
@@ -804,11 +1189,7 @@ android {
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         
-        # Multidex support for large apps
         multiDexEnabled true
-        
-        # Proguard optimization
-        proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
     }
 
     buildTypes {
@@ -816,443 +1197,91 @@ android {
             signingConfig signingConfigs.release
             minifyEnabled true
             shrinkResources true
-            
-            # Performance optimizations
-            optimization {
-                removeUnusedCode true
-                removeUnusedResources true
-            }
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
-```
 
-#### **10.2.2 Performance Optimizations**
-```yaml
-# Flutter build optimizations for Android
-build_runner:
-  runs-on: android
-  
-flutter_build:
-  target: lib/main.dart
-  
-  # Android optimizations
-  android:
-    target-platform: android-arm64  # Primary target
-    split-per-abi: true
-    obfuscate: true
-    split-debug-info: build/app/outputs/symbols
-    
-    # Tree shaking and dead code elimination
-    tree-shake-icons: true
-    dart-define:
-      - ENVIRONMENT=production
-      - ENABLE_ANALYTICS=false  # Privacy compliance
-
-### **10.3 CI/CD Pipeline**
-- **Automated Testing**: Unit, widget, and integration tests on Android
-- **Code Quality**: Static analysis and linting with Flutter best practices
-- **Security Scanning**: Dependency vulnerability checks
-- **Android Builds**: Automated APK and AAB generation for Play Store
-- **Release Management**: Version tagging, changelog generation, and Play Store deployment
-- **Performance Testing**: Android device testing across different API levels
-
-## **11. Monitoring & Analytics**
-
-### **11.1 Privacy-Compliant Monitoring**
-- **Performance Metrics**: App startup time, response times
-- **Error Tracking**: Crash reports without personal data
-- **Usage Statistics**: Feature adoption without user identification
-- **API Metrics**: Request success rates and response times
-
-### **11.2 Logging Strategy**
-```dart
-class PrivacyLogger {
-  // Log levels: ERROR, WARNING, INFO, DEBUG
-  static void logError(String message, {Exception? exception});
-  static void logPerformance(String operation, Duration duration);
-  static void logApiCall(String endpoint, int statusCode);
-  
-  // Never log personal data
-  static void sanitizeLogData(Map<String, dynamic> data);
+dependencies {
+    implementation 'androidx.multidex:multidex:2.0.1'
 }
 ```
 
-## **12. Maintenance & Updates**
-
-### **12.1 Version Management**
-- **Semantic Versioning**: Major.Minor.Patch versioning
-- **Database Migration**: Isar schema migration strategies
-- **API Versioning**: Handle Gemini API version changes
-- **Feature Flags**: Gradual feature rollout capability
-
-### **12.2 Update Strategy**
-- **Hot Updates**: Non-breaking feature updates
-- **Migration Scripts**: Database schema updates
-- **Backward Compatibility**: Support for older data formats
-- **Rollback Capability**: Safe update rollback mechanisms
-
-## **13. Comprehensive Testing Strategy**
-
-### **13.1 Testing Architecture Overview**
-
-#### **13.1.1 Multi-Layer Testing Approach**
-The Local Journal application requires a robust testing strategy due to its privacy-critical nature, local AI processing, and mobile-first architecture. Our approach follows the testing pyramid principle with emphasis on fast, reliable unit tests and comprehensive integration coverage.
-
-#### **13.1.2 Testing Tools & Dependencies**
+### **8.3 CI/CD Pipeline**
 ```yaml
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  mockito: ^5.4.0              # Mocking for unit tests
-  build_runner: ^2.4.0         # Code generation for mocks  
-  integration_test: ^0.20.0    # Flutter integration testing
-  patrol: ^2.2.0              # Enhanced integration testing
-  golden_toolkit: ^0.15.0     # Widget visual regression testing
-  leak_tracker: ^0.1.0        # Memory leak detection
-  test_coverage: ^1.0.0       # Coverage reporting
-```
+# .github/workflows/ci.yml
+name: CI/CD Pipeline
 
-### **13.2 Unit Testing (50% of test effort - 80%+ coverage)**
-
-#### **13.2.1 Core Business Logic Testing**
-```dart
-// RAG Engine Testing
-group('RAGEngine', () {
-  late RAGEngine ragEngine;
-  late MockEntryRepository mockRepository;
-  late MockEmbeddingService mockEmbeddingService;
-
-  setUp(() {
-    mockRepository = MockEntryRepository();
-    mockEmbeddingService = MockEmbeddingService();
-    ragEngine = RAGEngine(
-      entryRepository: mockRepository,
-      embeddingService: mockEmbeddingService,
-    );
-  });
-
-  test('should find relevant entries above similarity threshold', () async {
-    // Arrange
-    final mockEntries = [
-      createMockEntry(embedding: [0.1, 0.2, 0.3]),
-      createMockEntry(embedding: [0.9, 0.8, 0.7]),
-    ];
-    when(mockRepository.getEntriesForJournal(any))
-        .thenAnswer((_) async => mockEntries);
-    when(mockEmbeddingService.generateEmbedding(any))
-        .thenAnswer((_) async => [0.9, 0.8, 0.7]);
-
-    // Act
-    final results = await ragEngine.findRelevantEntries(
-      query: 'test query',
-      journalId: 1,
-      threshold: 0.7,
-    );
-
-    // Assert
-    expect(results.length, 1);
-    expect(results.first.similarity, greaterThan(0.7));
-  });
-
-  test('should handle empty embeddings gracefully', () async {
-    final mockEntries = [createMockEntry(embedding: [])];
-    when(mockRepository.getEntriesForJournal(any))
-        .thenAnswer((_) async => mockEntries);
-
-    final results = await ragEngine.findRelevantEntries(
-      query: 'test query',
-      journalId: 1,
-    );
-
-    expect(results, isEmpty);
-  });
-});
-
-// Vector Processing Testing
-group('VectorUtils', () {
-  test('cosine similarity calculation accuracy', () {
-    final vectorA = [1.0, 0.0, 0.0];
-    final vectorB = [0.0, 1.0, 0.0];
-    final similarity = VectorUtils.cosineSimilarity(vectorA, vectorB);
-    expect(similarity, closeTo(0.0, 0.001));
-  });
-
-  test('vector normalization', () {
-    final vector = [3.0, 4.0];
-    final normalized = VectorUtils.normalize(vector);
-    expect(normalized[0], closeTo(0.6, 0.001));
-    expect(normalized[1], closeTo(0.8, 0.001));
-  });
-});
-```
-
-#### **13.2.2 Privacy & Security Testing**
-```dart
-group('Privacy & Security', () {
-  test('API calls should never contain personal data', () async {
-    final apiClient = GeminiApiClient();
-    final mockHttpClient = MockHttpClient();
-    
-    // Monitor all HTTP requests
-    when(mockHttpClient.post(any, body: any, headers: any))
-        .thenAnswer((_) async => http.Response('{}', 200));
-    
-    await apiClient.generateResponse('user message with personal info');
-    
-    // Verify no personal data in request body
-    final capturedRequest = verify(mockHttpClient.post(any, 
-        body: captureAny, headers: any)).captured.single;
-    expect(capturedRequest, isNot(contains('personal info')));
-  });
-
-  test('local storage encryption is enabled', () async {
-    final storage = LocalStorageService();
-    await storage.initialize();
-    
-    // Verify encryption key is generated and used
-    expect(storage.isEncrypted, isTrue);
-    expect(storage.encryptionKey, isNotNull);
-  });
-
-  test('API keys are stored securely', () async {
-    const testKey = 'test-api-key-123';
-    await SecureStorage.storeApiKey(testKey);
-    
-    final retrievedKey = await SecureStorage.getApiKey();
-    expect(retrievedKey, equals(testKey));
-    
-    // Verify key is not stored in plain text
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString('api_key'), isNull);
-  });
-});
-```
-
-### **13.3 Widget Testing (30% of test effort)**
-
-#### **13.3.1 Critical UI Components**
-```dart
-group('Chat Interface Widget Tests', () {
-  testWidgets('displays messages correctly', (tester) async {
-    await tester.pumpWidget(TestApp(
-      child: ChatInterface(
-        messages: [
-          ChatMessage(content: 'User message', type: MessageType.user),
-          ChatMessage(content: 'AI response', type: MessageType.ai),
-        ],
-      ),
-    ));
-
-    expect(find.text('User message'), findsOneWidget);
-    expect(find.text('AI response'), findsOneWidget);
-    expect(find.byType(MessageBubble), findsNWidgets(2));
-  });
-
-  testWidgets('action buttons work correctly', (tester) async {
-    bool goDeepPressed = false;
-    bool finishPressed = false;
-
-    await tester.pumpWidget(TestApp(
-      child: ChatControls(
-        onGoDeeper: () => goDeepPressed = true,
-        onFinish: () => finishPressed = true,
-      ),
-    ));
-
-    await tester.tap(find.text('Go Deeper'));
-    await tester.tap(find.text('Finish Entry'));
-
-    expect(goDeepPressed, isTrue);
-    expect(finishPressed, isTrue);
-  });
-
-  testWidgets('confirmation dialogs prevent accidental actions', (tester) async {
-    await tester.pumpWidget(TestApp(child: ChatInterface()));
-
-    // Trigger cancel action
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
-
-    // Verify confirmation dialog appears
-    expect(find.byType(ConfirmationDialog), findsOneWidget);
-    expect(find.text('Are you sure you want to cancel?'), findsOneWidget);
-  });
-});
-
-group('Responsive Design Tests', () {
-  testWidgets('adapts to mobile screen size', (tester) async {
-    tester.binding.window.physicalSizeTestValue = const Size(400, 800);
-    tester.binding.window.devicePixelRatioTestValue = 1.0;
-
-    await tester.pumpWidget(TestApp(child: MainScaffold()));
-    
-    // Verify mobile layout
-    expect(find.byType(MobileLayout), findsOneWidget);
-    expect(find.byType(DesktopLayout), findsNothing);
-  });
-
-  testWidgets('historical panel is collapsible on mobile', (tester) async {
-    await tester.pumpWidget(TestApp(child: MainScaffold()));
-
-    final panel = find.byType(HistoricalEntriesPanel);
-    expect(panel, findsOneWidget);
-
-    // Test panel toggle
-    await tester.tap(find.byIcon(Icons.menu));
-    await tester.pumpAndSettle();
-    
-    // Verify panel state change
-  });
-});
-```
-
-### **13.4 Integration Testing (20% of test effort)**
-
-#### **13.4.1 End-to-End User Flows**
-```dart
-group('Complete User Workflows', () {
-  testWidgets('full journaling session flow', (tester) async {
-    await tester.pumpWidget(LocalJournalApp());
-
-    // 1. Start new conversation
-    await tester.tap(find.text('Start New Entry'));
-    await tester.pumpAndSettle();
-
-    // 2. Send initial message
-    await tester.enterText(find.byType(TextField), 'I feel anxious today');
-    await tester.tap(find.text('Go Deeper'));
-    await tester.pumpAndSettle();
-
-    // 3. Wait for AI response (mocked)
-    expect(find.textContaining('Tell me more'), findsOneWidget);
-
-    // 4. Continue conversation
-    await tester.enterText(find.byType(TextField), 'Work is overwhelming');
-    await tester.tap(find.text('Go Deeper'));
-    await tester.pumpAndSettle();
-
-    // 5. Finish entry
-    await tester.tap(find.text('Finish Entry'));
-    await tester.pumpAndSettle();
-
-    // 6. Confirm finish action
-    await tester.tap(find.text('Confirm'));
-    await tester.pumpAndSettle();
-
-    // 7. Verify summary generation and storage
-    expect(find.textContaining('Summary:'), findsOneWidget);
-    
-    // 8. Check entry appears in history
-    await tester.tap(find.byIcon(Icons.history));
-    expect(find.textContaining('anxious'), findsOneWidget);
-  });
-
-  testWidgets('RAG integration with historical context', (tester) async {
-    // Setup: Create previous entries in test database
-    await createTestEntry('Previous anxiety discussion');
-    
-    await tester.pumpWidget(LocalJournalApp());
-    
-    // Start new conversation
-    await tester.enterText(find.byType(TextField), 'Feeling anxious again');
-    await tester.tap(find.text('Go Deeper'));
-    await tester.pumpAndSettle();
-
-    // Verify AI response includes historical context
-    final aiResponse = find.byType(MessageBubble).last;
-    expect(find.descendant(
-      of: aiResponse, 
-      matching: find.textContaining('last time')
-    ), findsOneWidget);
-  });
-});
-```
-
-### **13.5 Performance Testing**
-
-#### **13.5.1 Vector Processing Performance**
-```dart
-group('Performance Tests', () {
-  test('vector similarity calculation performance', () async {
-    final stopwatch = Stopwatch()..start();
-    
-    // Test with realistic data size (100 entries, 768-dim embeddings)
-    final queryVector = List.generate(768, (i) => Random().nextDouble());
-    final storedVectors = List.generate(100, (_) => 
-      List.generate(768, (i) => Random().nextDouble())
-    );
-    
-    final similarities = VectorUtils.batchCosineSimilarity(
-      queryVector, 
-      storedVectors
-    );
-    
-    stopwatch.stop();
-    
-    expect(similarities.length, 100);
-    expect(stopwatch.elapsedMilliseconds, lessThan(100)); // Under 100ms
-  });
-
-  test('memory usage under load', () async {
-    final initialMemory = ProcessInfo.currentRss;
-    
-    // Simulate large conversation with many entries
-    final messages = List.generate(1000, (i) => 
-      ChatMessage(content: 'Message $i', type: MessageType.user)
-    );
-    
-    final provider = ChatProvider();
-    for (final message in messages) {
-      provider.addMessage(message);
-    }
-    
-    final finalMemory = ProcessInfo.currentRss;
-    final memoryIncrease = finalMemory - initialMemory;
-    
-    expect(memoryIncrease, lessThan(50 * 1024 * 1024)); // Less than 50MB
-  });
-});
-```
-
-### **13.6 Test Automation & CI Integration**
-
-#### **13.6.1 GitHub Actions Workflow**
-```yaml
-# .github/workflows/test.yml
-name: Test Suite
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: subosito/flutter-action@v2
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.x'
-      
+          
       - name: Install dependencies
         run: flutter pub get
-      
+        
+      - name: Run code generation
+        run: flutter packages pub run build_runner build --delete-conflicting-outputs
+        
+      - name: Analyze code
+        run: flutter analyze
+        
       - name: Run unit tests
         run: flutter test --coverage
-      
-      - name: Run widget tests
-        run: flutter test test/widget/
-      
+        
       - name: Run integration tests
         run: flutter test integration_test/
-      
+        
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
           file: coverage/lcov.info
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          
+      - name: Install dependencies
+        run: flutter pub get
+        
+      - name: Build Android APK
+        run: flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/symbols
+        
+      - name: Build Android App Bundle
+        run: flutter build appbundle --release --obfuscate --split-debug-info=build/app/outputs/symbols
+        
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-builds
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
 ```
 
-### **13.7 Testing Best Practices**
+## **9. Testing Strategy Implementation**
 
-#### **13.7.1 Test Organization**
+### **9.1 Test Structure**
 ```
 test/
 ├── unit/
@@ -1262,35 +1291,362 @@ test/
 │   │   └── embedding_service_test.dart
 │   ├── data/
 │   │   ├── repositories/
+│   │   │   ├── journal_repository_test.dart
+│   │   │   └── entry_repository_test.dart
 │   │   └── models/
+│   │       ├── journal_test.dart
+│   │       └── journal_entry_test.dart
+│   ├── providers/
+│   │   ├── chat_provider_test.dart
+│   │   ├── journal_provider_test.dart
+│   │   └── settings_provider_test.dart
 │   └── privacy/
 │       ├── secure_storage_test.dart
-│       └── api_client_test.dart
+│       ├── api_client_test.dart
+│       └── encryption_test.dart
 ├── widget/
 │   ├── chat_interface_test.dart
+│   ├── message_bubble_test.dart
+│   ├── chat_controls_test.dart
 │   ├── confirmation_dialog_test.dart
 │   └── responsive_layout_test.dart
 ├── integration/
 │   ├── journaling_flow_test.dart
 │   ├── rag_integration_test.dart
-│   └── data_persistence_test.dart
+│   ├── data_persistence_test.dart
+│   └── api_integration_test.dart
 └── performance/
     ├── vector_performance_test.dart
-    └── memory_usage_test.dart
+    ├── memory_usage_test.dart
+    └── database_performance_test.dart
 ```
 
-#### **13.7.2 Continuous Quality Assurance**
-- **Pre-commit Hooks**: Run unit tests and linting
-- **Pull Request Checks**: Full test suite and coverage validation
-- **Release Testing**: Integration tests on real devices
-- **Performance Monitoring**: Regular performance benchmarks
+### **9.2 Key Test Examples**
 
-This comprehensive testing strategy ensures the Local Journal application maintains high quality, reliability, and performance while protecting user privacy and delivering a smooth mobile experience.
+#### **9.2.1 RAG Engine Unit Test**
+```dart
+// test/unit/core/rag_engine_test.dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/mockito.dart';
+import 'package:mockito/annotations.dart';
+import 'package:local_journal/core/rag_engine.dart';
+import 'package:local_journal/data/repositories/entry_repository.dart';
 
-## **14. Conclusion**
+@GenerateMocks([EntryRepository, GeminiApiClient])
+import 'rag_engine_test.mocks.dart';
 
-This Technical Requirements Document provides the engineering foundation for building the Local Journal application. The architecture prioritizes privacy, performance, and user experience while maintaining technical simplicity and maintainability.
+void main() {
+  group('RAGEngine', () {
+    late RAGEngine ragEngine;
+    late MockEntryRepository mockRepository;
+    late MockGeminiApiClient mockApiClient;
 
-Key technical decisions still need to be made regarding state management, vector processing, and testing strategies. Once these decisions are finalized, development can proceed with clear technical specifications and implementation guidelines.
+    setUp(() {
+      mockRepository = MockEntryRepository();
+      mockApiClient = MockGeminiApiClient();
+      ragEngine = RAGEngine(
+        entryRepository: mockRepository,
+        apiClient: mockApiClient,
+      );
+    });
 
-The modular architecture allows for iterative development and easy maintenance while ensuring the application can scale to meet user needs and future feature requirements.
+    test('should find relevant entries above similarity threshold', () async {
+      // Arrange
+      final mockEntries = [
+        JournalEntry()
+          ..id = 1
+          ..summary = 'Feeling anxious about work'
+          ..summaryEmbedding = [0.1, 0.9, 0.3],
+        JournalEntry()
+          ..id = 2
+          ..summary = 'Happy day with family'
+          ..summaryEmbedding = [0.8, 0.1, 0.7],
+      ];
+      
+      when(mockRepository.getEntriesForJournal(any))
+          .thenAnswer((_) async => mockEntries);
+      when(mockApiClient.embedContent('work anxiety'))
+          .thenAnswer((_) async => [0.2, 0.8, 0.4]);
+
+      // Act
+      final results = await ragEngine.findRelevantEntries(
+        query: 'work anxiety',
+        journalId: 1,
+        threshold: 0.5,
+      );
+
+      // Assert
+      expect(results.length, 1);
+      expect(results.first, contains('anxious about work'));
+      verify(mockApiClient.embedContent('work anxiety')).called(1);
+    });
+
+    test('should handle empty embeddings gracefully', () async {
+      final mockEntries = [
+        JournalEntry()
+          ..id = 1
+          ..summary = 'Entry without embedding'
+          ..summaryEmbedding = [],
+      ];
+      
+      when(mockRepository.getEntriesForJournal(any))
+          .thenAnswer((_) async => mockEntries);
+      when(mockApiClient.embedContent(any))
+          .thenAnswer((_) async => [0.1, 0.2, 0.3]);
+
+      final results = await ragEngine.findRelevantEntries(
+        query: 'test query',
+        journalId: 1,
+      );
+
+      expect(results, isEmpty);
+    });
+  });
+}
+```
+
+#### **9.2.2 Chat Interface Widget Test**
+```dart
+// test/widget/chat_interface_test.dart
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:local_journal/presentation/widgets/chat_interface.dart';
+import 'package:local_journal/presentation/providers/chat_provider.dart';
+
+void main() {
+  group('ChatInterface Widget', () {
+    testWidgets('displays messages correctly', (tester) async {
+      final chatProvider = ChatProvider(
+        apiClient: MockGeminiApiClient(),
+        ragEngine: MockRAGEngine(),
+        entryRepository: MockEntryRepository(),
+      );
+      
+      chatProvider.addMessage(ChatMessage(
+        content: 'Hello, how are you?',
+        type: MessageType.user,
+        timestamp: DateTime.now(),
+      ));
+      
+      chatProvider.addMessage(ChatMessage(
+        content: 'I\'m here to help you explore your thoughts.',
+        type: MessageType.ai,
+        timestamp: DateTime.now(),
+      ));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider<ChatProvider>.value(
+            value: chatProvider,
+            child: Scaffold(body: ChatInterface()),
+          ),
+        ),
+      );
+
+      expect(find.text('Hello, how are you?'), findsOneWidget);
+      expect(find.text('I\'m here to help you explore your thoughts.'), findsOneWidget);
+      expect(find.byType(MessageBubble), findsNWidgets(2));
+    });
+
+    testWidgets('shows empty state when no messages', (tester) async {
+      final chatProvider = ChatProvider(
+        apiClient: MockGeminiApiClient(),
+        ragEngine: MockRAGEngine(),
+        entryRepository: MockEntryRepository(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider<ChatProvider>.value(
+            value: chatProvider,
+            child: Scaffold(body: ChatInterface()),
+          ),
+        ),
+      );
+
+      expect(find.byType(EmptyStateWidget), findsOneWidget);
+      expect(find.byType(MessageBubble), findsNothing);
+    });
+  });
+}
+```
+
+#### **9.2.3 Complete Journey Integration Test**
+```dart
+// integration_test/journaling_flow_test.dart
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:integration_test/integration_test.dart';
+import 'package:local_journal/main.dart' as app;
+
+void main() {
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  group('Complete Journaling Flow', () {
+    testWidgets('user can complete full journal entry', (tester) async {
+      app.main();
+      await tester.pumpAndSettle();
+
+      // Skip onboarding if needed
+      if (find.text('Get Started').hitTestable()) {
+        await tester.tap(find.text('Get Started'));
+        await tester.pumpAndSettle();
+        
+        // Enter API key
+        await tester.enterText(find.byKey(Key('api_key_field')), 'test-api-key');
+        await tester.tap(find.text('Continue'));
+        await tester.pumpAndSettle();
+      }
+
+      // Start journaling
+      await tester.enterText(
+        find.byType(TextField).first,
+        'I had a challenging day at work today. Feeling overwhelmed.',
+      );
+      
+      await tester.tap(find.text('Go Deeper'));
+      await tester.pumpAndSettle();
+
+      // Wait for AI response (in real test, this would be mocked)
+      expect(find.byType(MessageBubble), findsAtLeastNWidgets(2));
+
+      // Continue conversation
+      await tester.enterText(
+        find.byType(TextField).first,
+        'Too many meetings and deadlines. I feel like I can\'t keep up.',
+      );
+      
+      await tester.tap(find.text('Go Deeper'));
+      await tester.pumpAndSettle();
+
+      // Finish the entry
+      await tester.tap(find.text('Finish Entry'));
+      await tester.pumpAndSettle();
+
+      // Confirm finish
+      expect(find.text('Finish Entry'), findsWidgets); // In dialog
+      await tester.tap(find.text('Finish Entry').last);
+      await tester.pumpAndSettle();
+
+      // Verify entry was saved and appears in history
+      await tester.tap(find.byIcon(Icons.menu));
+      await tester.pumpAndSettle();
+      
+      expect(find.textContaining('challenging day'), findsOneWidget);
+    });
+  });
+}
+```
+
+## **10. Performance Monitoring & Optimization**
+
+### **10.1 Performance Metrics**
+```dart
+class PerformanceMonitor {
+  static final Map<String, Stopwatch> _stopwatches = {};
+  static final List<PerformanceMetric> _metrics = [];
+  
+  static void startTimer(String operation) {
+    _stopwatches[operation] = Stopwatch()..start();
+  }
+  
+  static void endTimer(String operation) {
+    final stopwatch = _stopwatches[operation];
+    if (stopwatch != null) {
+      stopwatch.stop();
+      _recordMetric(operation, stopwatch.elapsedMilliseconds);
+      _stopwatches.remove(operation);
+    }
+  }
+  
+  static void _recordMetric(String operation, int durationMs) {
+    _metrics.add(PerformanceMetric(
+      operation: operation,
+      duration: Duration(milliseconds: durationMs),
+      timestamp: DateTime.now(),
+    ));
+    
+    // Log performance issues
+    if (durationMs > _getThreshold(operation)) {
+      _logPerformanceIssue(operation, durationMs);
+    }
+  }
+  
+  static int _getThreshold(String operation) {
+    switch (operation) {
+      case 'vector_similarity':
+        return 100; // 100ms threshold
+      case 'ai_response':
+        return 3000; // 3s threshold
+      case 'database_query':
+        return 50; // 50ms threshold
+      default:
+        return 1000; // 1s default
+    }
+  }
+  
+  static void _logPerformanceIssue(String operation, int durationMs) {
+    debugPrint('Performance Warning: $operation took ${durationMs}ms');
+    // In production, send to analytics without personal data
+  }
+}
+
+class PerformanceMetric {
+  final String operation;
+  final Duration duration;
+  final DateTime timestamp;
+  
+  PerformanceMetric({
+    required this.operation,
+    required this.duration,
+    required this.timestamp,
+  });
+}
+```
+
+### **10.2 Memory Management**
+```dart
+class MemoryManager {
+  static const int maxMessagesInMemory = 100;
+  static const int maxEmbeddingsInCache = 500;
+  
+  static void cleanupConversationHistory(ChatProvider chatProvider) {
+    if (chatProvider.messages.length > maxMessagesInMemory) {
+      final excessMessages = chatProvider.messages.length - maxMessagesInMemory;
+      chatProvider.removeOldestMessages(excessMessages);
+    }
+  }
+  
+  static Future<void> cleanupEmbeddingCache() async {
+    // Implementation to clean up old embedding cache
+    // This would be called periodically
+  }
+  
+  static Future<void> optimizeDatabase() async {
+    final isar = await DatabaseService.instance;
+    
+    // Compact database
+    await isar.close();
+    await Isar.compactOnLaunch();
+    
+    // Reinitialize
+    DatabaseService._instance = null;
+    await DatabaseService.instance;
+  }
+}
+```
+
+This restructured document now provides:
+
+1. **✅ Clear Implementation Roadmap**: All decisions are finalized and documented
+2. **✅ Ready-to-Code Architecture**: Detailed code examples for all major components
+3. **✅ Complete Technical Stack**: All libraries, versions, and configurations specified
+4. **✅ Production-Ready Configuration**: Android build, CI/CD, and deployment ready
+5. **✅ Comprehensive Testing Strategy**: Full test implementation examples
+6. **✅ Security & Privacy Focus**: Complete implementation of privacy-first design
+7. **✅ Performance Optimization**: Monitoring and optimization strategies
+
+The document is now structured as an **implementation guide** rather than a decision document, making it much more useful for development teams to begin coding immediately.
+
+Would you like me to save this restructured version as the final technical requirements document?
