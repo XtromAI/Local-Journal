@@ -27,11 +27,11 @@ The goal is to create a client-side, journaling application with a chat-based in
 
 ### **User Interface (UI)**
 
-* **Single-Page Application**: The entire app, including the chat and historical entries, will be contained within a single application file.  
+* **Single-Page Application**: The entire app, including the chat and historical entries, will be contained within a single page.  
 * **Chat Layout**: The chat interface should be responsive and clean, with distinct styling for user and AI messages.  
 * **Mobile-First Design**: The UI and interactive elements are optimized for mobile, ensuring a seamless experience on touch devices.  
 * **Dark Mode**: The application will use a dark mode theme.  
-* **Confirmation Dialogs**: All modal confirmation dialogs must be designed and implemented within the application file.
+* **Confirmation Dialogs**: All modal confirmation dialogs must be designed and implemented within the application.
 
 ### **Retrieval-Augmented Generation (RAG)**
 
@@ -50,7 +50,6 @@ The goal is to create a client-side, journaling application with a chat-based in
 
 ## **4\. Technical Constraints**
 
-* **Single App File**: The entire application's source code must be contained in a single Dart file.  
 * **No Server-Side Components**: The application is entirely client-side.  
 * **Authentication**: The app will rely solely on device security for data protection, with no built-in PIN or password required.  
 * **API Key Management**: The application will not contain the API key in its source code. Instead, the user will be prompted to enter the key upon first use, and it will be stored in local storage to avoid repeated prompts.  
