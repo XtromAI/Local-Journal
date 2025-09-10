@@ -91,7 +91,9 @@ To democratize access to personalized mental health and self-reflection tools by
 **Acceptance Criteria:**
 - Zero personal data transmitted to external servers (except API calls)
 - API key stored securely and user-manageable
-- Export functionality for all user data
+- Export functionality covers all user data (journals, entries, settings, conversation history)
+- Export generates standard format files (JSON primary, CSV option for entries)
+- Export process is fully local with no external data transmission
 - Entry deletion with confirmation and permanent removal
 
 #### **Epic 6: Accessibility & Usability**
@@ -201,6 +203,31 @@ To democratize access to personalized mental health and self-reflection tools by
 - Simple API key setup process
 - Transparent data handling practices
 - User control over all personal information
+
+#### **3.1.5 Data Export Feature**
+**Feature Description:** Complete data export functionality for user data portability and backup
+
+**User Interface Elements:**
+- Export button accessible from settings/menu
+- Export options dialog (JSON format, CSV format for entries)
+- Progress indicator during export generation
+- Success notification with file location
+- Export confirmation dialog with privacy assurance
+
+**Functional Requirements:**
+- Export all user data: journals, entries, conversation history, settings
+- Generate structured JSON file with complete data model
+- Optional CSV export for journal entries for spreadsheet compatibility  
+- Local file system write with user-controlled location
+- Export process validation and integrity checking
+- No external data transmission during export
+
+**User Experience Requirements:**
+- One-click export initiation from settings
+- Clear progress feedback during export generation
+- Success confirmation with file access guidance
+- Privacy assurance messaging throughout process
+- Error handling with helpful troubleshooting guidance
 
 ### **3.2 User Experience Features**
 
@@ -357,6 +384,16 @@ To democratize access to personalized mental health and self-reflection tools by
 - [ ] Journal switching maintains separate conversation histories
 - [ ] AI responses adapt to journal context and purpose
 - [ ] Each journal maintains its own entry chronology
+
+#### **5.1.4 Data Export Functionality**
+- [ ] Export button accessible from settings interface
+- [ ] Export includes all user data: journals, entries, conversation history, settings
+- [ ] JSON export format maintains complete data structure and relationships
+- [ ] CSV export option available for journal entries
+- [ ] Export process completes locally with no external data transmission
+- [ ] Export generates valid, importable file formats
+- [ ] Success notification provides clear file location and access guidance
+- [ ] Export process includes data validation and integrity verification
 
 ### **5.2 User Experience Acceptance**
 

@@ -51,6 +51,7 @@ The Local Journal application follows a **client-only architecture** with no ser
 - **GeminiApiClient**: API communication with error handling
 - **EntryRepository**: Data access layer for journal entries
 - **EmbeddingService**: Vector generation and management (vector_math)
+- **ExportService**: Data export functionality with JSON/CSV generation
 
 ### **2.3 Data Flow Architecture**
 ```
@@ -77,7 +78,8 @@ lib/
 │   │   └── failures.dart          # Error handling
 │   ├── services/
 │   │   ├── storage_service.dart    # Local storage management
-│   │   └── encryption_service.dart # Data encryption
+│   │   ├── encryption_service.dart # Data encryption
+│   │   └── export_service.dart     # Data export functionality
 │   └── utils/
 │       ├── vector_utils.dart       # Vector operations
 │       └── text_utils.dart         # Text preprocessing
@@ -118,6 +120,7 @@ lib/
     ├── journal/                    # Journal management
     ├── entries/                    # Entry management
     ├── rag/                        # RAG implementation
+    ├── export/                     # Data export functionality
     └── settings/                   # App settings
 ```
 
@@ -705,6 +708,315 @@ class EntryWithSimilarity {
 }
 ```
 
+## **5.3 Export Service Implementation**
+
+### **5.3.1 ExportService Class**
+```dart
+import 'dart:convert';
+import 'dart:io';
+import 'package:csv/csv.dart';
+import 'package:path_provider/path_provider.dart';
+
+class ExportService {
+  final JournalRepository _journalRepository;
+  final EntryRepository _entryRepository;
+  final UserSettingsRepository _settingsRepository;
+  
+  ExportService({
+    required JournalRepository journalRepository,
+    required EntryRepository entryRepository,
+    required UserSettingsRepository settingsRepository,
+  }) : _journalRepository = journalRepository,
+       _entryRepository = entryRepository,
+       _settingsRepository = settingsRepository;
+
+  /// Exports all user data to JSON format
+  Future<ExportResult> exportToJson() async {
+    try {
+      final exportData = await _gatherAllUserData();
+      final jsonString = _formatAsJson(exportData);
+      final filePath = await _saveToFile(jsonString, 'local_journal_export.json');
+      
+      return ExportResult.success(
+        filePath: filePath,
+        format: ExportFormat.json,
+        entriesCount: exportData.totalEntries,
+        journalsCount: exportData.journals.length,
+      );
+    } catch (e) {
+      return ExportResult.failure(error: e.toString());
+    }
+  }
+
+  /// Exports journal entries to CSV format
+  Future<ExportResult> exportToCsv() async {
+    try {
+      final exportData = await _gatherAllUserData();
+      final csvString = _formatAsCsv(exportData);
+      final filePath = await _saveToFile(csvString, 'local_journal_entries.csv');
+      
+      return ExportResult.success(
+        filePath: filePath,
+        format: ExportFormat.csv,
+        entriesCount: exportData.totalEntries,
+        journalsCount: exportData.journals.length,
+      );
+    } catch (e) {
+      return ExportResult.failure(error: e.toString());
+    }
+  }
+
+  /// Gathers all user data from local database
+  Future<ExportData> _gatherAllUserData() async {
+    final journals = await _journalRepository.getAllJournals();
+    final settings = await _settingsRepository.getUserSettings();
+    final allEntries = <JournalEntry>[];
+    
+    for (final journal in journals) {
+      final entries = await _entryRepository.getEntriesForJournal(journal.id);
+      allEntries.addAll(entries);
+    }
+
+    return ExportData(
+      journals: journals,
+      entries: allEntries,
+      settings: settings,
+      exportTimestamp: DateTime.now(),
+      appVersion: await _getAppVersion(),
+    );
+  }
+
+  /// Formats export data as JSON with complete structure
+  String _formatAsJson(ExportData data) {
+    final exportMap = {
+      'export_metadata': {
+        'timestamp': data.exportTimestamp.toIso8601String(),
+        'app_version': data.appVersion,
+        'format_version': '1.0.0',
+        'total_journals': data.journals.length,
+        'total_entries': data.entries.length,
+      },
+      'user_settings': {
+        'theme': data.settings.theme,
+        'preferences': data.settings.preferences,
+        // Note: API key excluded for security
+      },
+      'journals': data.journals.map((journal) => {
+        'id': journal.id,
+        'name': journal.name,
+        'description': journal.description,
+        'created_at': journal.createdAt.toIso8601String(),
+        'updated_at': journal.updatedAt.toIso8601String(),
+        'entries': data.entries
+            .where((entry) => entry.journalId == journal.id)
+            .map((entry) => _entryToMap(entry))
+            .toList(),
+      }).toList(),
+    };
+
+    return const JsonEncoder.withIndent('  ').convert(exportMap);
+  }
+
+  /// Formats journal entries as CSV for spreadsheet compatibility
+  String _formatAsCsv(ExportData data) {
+    final rows = <List<String>>[];
+    
+    // CSV Headers
+    rows.add([
+      'Journal Name',
+      'Entry Date',
+      'Entry Summary',
+      'Conversation Length',
+      'First User Message',
+      'Final AI Response',
+      'Created At',
+      'Completed At',
+    ]);
+
+    // Data rows
+    for (final entry in data.entries) {
+      final journal = data.journals.firstWhere(
+        (j) => j.id == entry.journalId,
+        orElse: () => Journal()..name = 'Unknown Journal',
+      );
+
+      final userMessages = entry.conversation
+          .where((msg) => msg.type == MessageType.user)
+          .toList();
+      final aiMessages = entry.conversation
+          .where((msg) => msg.type == MessageType.ai)
+          .toList();
+
+      rows.add([
+        journal.name,
+        entry.createdAt.toLocal().toString().split(' ')[0], // Date only
+        entry.summary.replaceAll('"', '""'), // Escape quotes for CSV
+        entry.conversation.length.toString(),
+        userMessages.isNotEmpty ? userMessages.first.content.replaceAll('"', '""') : '',
+        aiMessages.isNotEmpty ? aiMessages.last.content.replaceAll('"', '""') : '',
+        entry.createdAt.toIso8601String(),
+        entry.completedAt.toIso8601String(),
+      ]);
+    }
+
+    return const ListToCsvConverter().convert(rows);
+  }
+
+  Map<String, dynamic> _entryToMap(JournalEntry entry) {
+    return {
+      'id': entry.id,
+      'summary': entry.summary,
+      'created_at': entry.createdAt.toIso8601String(),
+      'completed_at': entry.completedAt.toIso8601String(),
+      'conversation': entry.conversation.map((msg) => {
+        'content': msg.content,
+        'type': msg.type.name,
+        'timestamp': msg.timestamp.toIso8601String(),
+        'metadata': msg.metadata,
+      }).toList(),
+      // Note: embeddings excluded from export for size/privacy
+    };
+  }
+
+  /// Saves export data to device storage
+  Future<String> _saveToFile(String content, String fileName) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final exportsDir = Directory('${directory.path}/exports');
+    
+    if (!await exportsDir.exists()) {
+      await exportsDir.create(recursive: true);
+    }
+
+    final timestamp = DateTime.now().toIso8601String().split('T')[0];
+    final uniqueFileName = '${timestamp}_$fileName';
+    final file = File('${exportsDir.path}/$uniqueFileName');
+    
+    await file.writeAsString(content);
+    return file.path;
+  }
+
+  Future<String> _getAppVersion() async {
+    // Implementation would get version from package_info
+    return '1.0.0';
+  }
+}
+
+/// Export operation result
+class ExportResult {
+  final bool isSuccess;
+  final String? filePath;
+  final String? error;
+  final ExportFormat? format;
+  final int? entriesCount;
+  final int? journalsCount;
+
+  ExportResult.success({
+    required this.filePath,
+    required this.format,
+    required this.entriesCount,
+    required this.journalsCount,
+  }) : isSuccess = true, error = null;
+
+  ExportResult.failure({required this.error})
+      : isSuccess = false,
+        filePath = null,
+        format = null,
+        entriesCount = null,
+        journalsCount = null;
+}
+
+/// Export data container
+class ExportData {
+  final List<Journal> journals;
+  final List<JournalEntry> entries;
+  final UserSettings settings;
+  final DateTime exportTimestamp;
+  final String appVersion;
+
+  ExportData({
+    required this.journals,
+    required this.entries,
+    required this.settings,
+    required this.exportTimestamp,
+    required this.appVersion,
+  });
+
+  int get totalEntries => entries.length;
+}
+
+enum ExportFormat { json, csv }
+```
+
+### **5.3.2 Export Provider for State Management**
+```dart
+class ExportProvider extends ChangeNotifier {
+  final ExportService _exportService;
+  
+  bool _isExporting = false;
+  ExportResult? _lastExportResult;
+  String _exportProgress = '';
+
+  ExportProvider({required ExportService exportService}) 
+      : _exportService = exportService;
+
+  bool get isExporting => _isExporting;
+  ExportResult? get lastExportResult => _lastExportResult;
+  String get exportProgress => _exportProgress;
+
+  Future<void> exportToJson() async {
+    await _performExport(() => _exportService.exportToJson());
+  }
+
+  Future<void> exportToCsv() async {
+    await _performExport(() => _exportService.exportToCsv());
+  }
+
+  Future<void> _performExport(Future<ExportResult> Function() exportFunction) async {
+    _setExporting(true);
+    _updateProgress('Gathering user data...');
+
+    try {
+      await Future.delayed(const Duration(milliseconds: 500)); // UI feedback
+      _updateProgress('Formatting export data...');
+      
+      await Future.delayed(const Duration(milliseconds: 300));
+      _updateProgress('Writing to file...');
+      
+      final result = await exportFunction();
+      _lastExportResult = result;
+      
+      if (result.isSuccess) {
+        _updateProgress('Export completed successfully!');
+      } else {
+        _updateProgress('Export failed: ${result.error}');
+      }
+      
+    } catch (e) {
+      _lastExportResult = ExportResult.failure(error: e.toString());
+      _updateProgress('Export failed unexpectedly');
+    } finally {
+      _setExporting(false);
+    }
+  }
+
+  void _setExporting(bool exporting) {
+    _isExporting = exporting;
+    notifyListeners();
+  }
+
+  void _updateProgress(String progress) {
+    _exportProgress = progress;
+    notifyListeners();
+  }
+
+  void clearLastResult() {
+    _lastExportResult = null;
+    _exportProgress = '';
+    notifyListeners();
+  }
+}
+```
+
 ## **6. User Interface Implementation**
 
 ### **6.1 Main Application Interface**
@@ -1028,6 +1340,242 @@ class ConfirmationDialog extends StatelessWidget {
 }
 ```
 
+### **6.5 Export Dialog Implementation**
+```dart
+class ExportDialog extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ExportProvider>(
+      builder: (context, exportProvider, child) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[850],
+          title: const Text(
+            'Export Your Data',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Export all your journal data for backup or migration. Your data will be saved locally and never transmitted externally.',
+                style: TextStyle(color: Colors.grey[300]),
+              ),
+              const SizedBox(height: 16),
+              if (exportProvider.isExporting) ...[
+                LinearProgressIndicator(
+                  backgroundColor: Colors.grey[700],
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[400]!),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  exportProvider.exportProgress,
+                  style: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: 12,
+                  ),
+                ),
+              ] else ...[
+                const Text(
+                  'Choose export format:',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _ExportFormatTile(
+                  title: 'Complete JSON Export',
+                  subtitle: 'All data with full conversation history',
+                  icon: Icons.code,
+                  onTap: () => exportProvider.exportToJson(),
+                ),
+                const SizedBox(height: 8),
+                _ExportFormatTile(
+                  title: 'CSV Entries Export',
+                  subtitle: 'Journal entries for spreadsheet use',
+                  icon: Icons.table_chart,
+                  onTap: () => exportProvider.exportToCsv(),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            if (!exportProvider.isExporting) ...[
+              TextButton(
+                onPressed: () {
+                  exportProvider.clearLastResult();
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Cancel'),
+              ),
+            ] else ...[
+              TextButton(
+                onPressed: null,
+                child: Text(
+                  'Exporting...',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ExportFormatTile extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _ExportFormatTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.grey[800],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey[700]!),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: Colors.blue[400],
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.grey[600],
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Success dialog shown after export completion
+class ExportSuccessDialog extends StatelessWidget {
+  final ExportResult result;
+
+  const ExportSuccessDialog({
+    Key? key,
+    required this.result,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.grey[850],
+      title: Row(
+        children: [
+          Icon(
+            Icons.check_circle,
+            color: Colors.green[400],
+            size: 28,
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            'Export Complete',
+            style: TextStyle(color: Colors.white),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Successfully exported ${result.entriesCount} entries from ${result.journalsCount} journals.',
+            style: TextStyle(color: Colors.grey[300]),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[800],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'File saved to:',
+                  style: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                SelectableText(
+                  result.filePath ?? 'Unknown location',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'You can now backup this file or import it into other applications.',
+            style: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Done'),
+        ),
+      ],
+    );
+  }
+}
+```
+
 ## **7. Security & Privacy Implementation**
 
 ### **7.1 Secure Storage**
@@ -1139,6 +1687,7 @@ dependencies:
   # Utilities
   intl: ^0.18.0
   uuid: ^4.0.0
+  csv: ^5.0.0
 
 dev_dependencies:
   flutter_test:
@@ -1534,6 +2083,301 @@ void main() {
       await tester.pumpAndSettle();
       
       expect(find.textContaining('challenging day'), findsOneWidget);
+    });
+  });
+}
+```
+
+#### **9.2.4 Export Service Unit Test**
+```dart
+// test/unit/core/export_service_test.dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/mockito.dart';
+import 'package:mockito/annotations.dart';
+import 'package:local_journal/core/services/export_service.dart';
+import 'package:local_journal/data/repositories/journal_repository.dart';
+
+@GenerateMocks([JournalRepository, EntryRepository, UserSettingsRepository])
+import 'export_service_test.mocks.dart';
+
+void main() {
+  group('ExportService', () {
+    late ExportService exportService;
+    late MockJournalRepository mockJournalRepository;
+    late MockEntryRepository mockEntryRepository;
+    late MockUserSettingsRepository mockSettingsRepository;
+
+    setUp(() {
+      mockJournalRepository = MockJournalRepository();
+      mockEntryRepository = MockEntryRepository();
+      mockSettingsRepository = MockUserSettingsRepository();
+      
+      exportService = ExportService(
+        journalRepository: mockJournalRepository,
+        entryRepository: mockEntryRepository,
+        settingsRepository: mockSettingsRepository,
+      );
+    });
+
+    test('should export all user data to JSON format', () async {
+      // Arrange
+      final mockJournals = [
+        Journal()
+          ..id = 1
+          ..name = 'Work Journal'
+          ..createdAt = DateTime.parse('2024-01-01'),
+      ];
+      
+      final mockEntries = [
+        JournalEntry()
+          ..id = 1
+          ..journalId = 1
+          ..summary = 'Test entry'
+          ..conversation = [
+            ChatMessage(
+              content: 'Hello',
+              type: MessageType.user,
+              timestamp: DateTime.parse('2024-01-01T10:00:00'),
+            ),
+          ]
+          ..createdAt = DateTime.parse('2024-01-01T10:00:00'),
+      ];
+      
+      final mockSettings = UserSettings()
+        ..theme = 'dark'
+        ..preferences = {'test': 'value'};
+
+      when(mockJournalRepository.getAllJournals())
+          .thenAnswer((_) async => mockJournals);
+      when(mockEntryRepository.getEntriesForJournal(1))
+          .thenAnswer((_) async => mockEntries);
+      when(mockSettingsRepository.getUserSettings())
+          .thenAnswer((_) async => mockSettings);
+
+      // Act
+      final result = await exportService.exportToJson();
+
+      // Assert
+      expect(result.isSuccess, isTrue);
+      expect(result.format, ExportFormat.json);
+      expect(result.entriesCount, 1);
+      expect(result.journalsCount, 1);
+      expect(result.filePath, isNotNull);
+      expect(result.filePath, contains('.json'));
+      
+      // Verify all repositories were called
+      verify(mockJournalRepository.getAllJournals()).called(1);
+      verify(mockEntryRepository.getEntriesForJournal(1)).called(1);
+      verify(mockSettingsRepository.getUserSettings()).called(1);
+    });
+
+    test('should export entries to CSV format', () async {
+      // Similar setup as JSON test
+      final mockJournals = [Journal()..id = 1..name = 'Test Journal'];
+      final mockEntries = [
+        JournalEntry()
+          ..id = 1
+          ..journalId = 1
+          ..summary = 'CSV test entry'
+          ..conversation = [
+            ChatMessage(
+              content: 'Test message',
+              type: MessageType.user,
+              timestamp: DateTime.now(),
+            ),
+          ],
+      ];
+
+      when(mockJournalRepository.getAllJournals())
+          .thenAnswer((_) async => mockJournals);
+      when(mockEntryRepository.getEntriesForJournal(any))
+          .thenAnswer((_) async => mockEntries);
+      when(mockSettingsRepository.getUserSettings())
+          .thenAnswer((_) async => UserSettings());
+
+      final result = await exportService.exportToCsv();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.format, ExportFormat.csv);
+      expect(result.filePath, contains('.csv'));
+    });
+
+    test('should handle export errors gracefully', () async {
+      // Arrange
+      when(mockJournalRepository.getAllJournals())
+          .thenThrow(Exception('Database error'));
+
+      // Act
+      final result = await exportService.exportToJson();
+
+      // Assert
+      expect(result.isSuccess, isFalse);
+      expect(result.error, isNotNull);
+      expect(result.error, contains('Database error'));
+    });
+
+    test('should exclude sensitive data from export', () async {
+      // Test that API keys and other sensitive data are not included
+      final mockSettings = UserSettings()
+        ..geminiApiKey = 'secret-key'
+        ..theme = 'dark';
+
+      when(mockJournalRepository.getAllJournals())
+          .thenAnswer((_) async => []);
+      when(mockEntryRepository.getEntriesForJournal(any))
+          .thenAnswer((_) async => []);
+      when(mockSettingsRepository.getUserSettings())
+          .thenAnswer((_) async => mockSettings);
+
+      final result = await exportService.exportToJson();
+      
+      // Read the exported file and verify API key is not present
+      expect(result.isSuccess, isTrue);
+      // In actual implementation, would verify file contents don't contain API key
+    });
+  });
+}
+```
+
+#### **9.2.5 Export Dialog Widget Test**
+```dart
+// test/widget/export_dialog_test.dart
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:local_journal/presentation/widgets/export_dialog.dart';
+import 'package:local_journal/presentation/providers/export_provider.dart';
+
+void main() {
+  group('ExportDialog Widget', () {
+    late ExportProvider mockExportProvider;
+
+    setUp(() {
+      mockExportProvider = ExportProvider(
+        exportService: MockExportService(),
+      );
+    });
+
+    testWidgets('displays export options when not exporting', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider<ExportProvider>.value(
+            value: mockExportProvider,
+            child: Scaffold(body: ExportDialog()),
+          ),
+        ),
+      );
+
+      expect(find.text('Export Your Data'), findsOneWidget);
+      expect(find.text('Complete JSON Export'), findsOneWidget);
+      expect(find.text('CSV Entries Export'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+    });
+
+    testWidgets('shows progress when exporting', (tester) async {
+      // Simulate export in progress
+      mockExportProvider.exportToJson(); // This would set isExporting to true
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider<ExportProvider>.value(
+            value: mockExportProvider,
+            child: Scaffold(body: ExportDialog()),
+          ),
+        ),
+      );
+      
+      await tester.pump(); // Allow state changes
+
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      expect(find.text('Exporting...'), findsOneWidget);
+      expect(find.text('Cancel'), findsNothing);
+    });
+
+    testWidgets('triggers JSON export when JSON option tapped', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider<ExportProvider>.value(
+            value: mockExportProvider,
+            child: Scaffold(body: ExportDialog()),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Complete JSON Export'));
+      await tester.pump();
+
+      // Verify export was initiated
+      // In actual implementation, would verify mock was called
+    });
+  });
+}
+```
+
+#### **9.2.6 Export Integration Test**
+```dart
+// integration_test/export_flow_test.dart
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:integration_test/integration_test.dart';
+import 'package:local_journal/main.dart' as app;
+
+void main() {
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  group('Export Data Flow', () {
+    testWidgets('user can export data successfully', (tester) async {
+      app.main();
+      await tester.pumpAndSettle();
+
+      // Navigate to settings (assuming it's accessible from menu)
+      await tester.tap(find.byIcon(Icons.menu));
+      await tester.pumpAndSettle();
+      
+      await tester.tap(find.text('Settings'));
+      await tester.pumpAndSettle();
+
+      // Find and tap export data option
+      await tester.tap(find.text('Export Data'));
+      await tester.pumpAndSettle();
+
+      // Verify export dialog appears
+      expect(find.text('Export Your Data'), findsOneWidget);
+      expect(find.text('Complete JSON Export'), findsOneWidget);
+
+      // Select JSON export
+      await tester.tap(find.text('Complete JSON Export'));
+      await tester.pumpAndSettle();
+
+      // Wait for export to complete (with timeout)
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+
+      // Verify success message or dialog
+      expect(
+        find.textContaining('Export Complete').or(find.textContaining('Successfully exported')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('user can cancel export operation', (tester) async {
+      app.main();
+      await tester.pumpAndSettle();
+
+      // Navigate to export dialog
+      await tester.tap(find.byIcon(Icons.menu));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Settings'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export Data'));
+      await tester.pumpAndSettle();
+
+      // Cancel the operation
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      // Verify dialog is dismissed
+      expect(find.text('Export Your Data'), findsNothing);
     });
   });
 }
