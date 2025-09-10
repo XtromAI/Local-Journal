@@ -20,13 +20,13 @@ To democratize access to personalized mental health and self-reflection tools by
 
 **User Stories:**
 - As a new user, I want to see a clear explanation of privacy benefits so that I feel secure about sharing personal thoughts
-- As a new user, I want to easily enter my API key so that I can start using AI features without technical complexity
+- As a new user, I don't want to enter my API key right away so that I can start using AI features without technical complexity
 - As a new user, I want a guided first conversation so that I understand how AI journaling works
 - As a new user, I want to see my first summary generated so that I understand the value of the completion process
 
 **Acceptance Criteria:**
 - Privacy explanation appears before any data entry
-- API key setup is required only once with clear instructions
+- API key setup is not required for first journal entry, and when I need one I want clear instructions
 - First session demonstrates AI guidance capabilities within 5 minutes
 - User completes their first journal entry with summary within 10 minutes
 
@@ -87,12 +87,14 @@ To democratize access to personalized mental health and self-reflection tools by
 - As a user, I want to manage my API key so that I control access to AI services
 - As a user, I want to export my data so that I can backup or migrate my journals
 - As a user, I want to delete specific entries so that I can remove content I no longer want
+- As a user, I want to delete all my data if I decide I no longer want it
 
 **Acceptance Criteria:**
 - Zero personal data transmitted to external servers (except API calls)
 - API key stored securely and user-manageable
 - Export functionality for all user data
 - Entry deletion with confirmation and permanent removal
+- All data deletion with double confirmation and permanent removal
 
 #### **Epic 6: Accessibility & Usability**
 **As a mobile user, I want a seamless experience across devices so that I can journal whenever inspiration strikes.**
@@ -105,7 +107,7 @@ To democratize access to personalized mental health and self-reflection tools by
 
 **Acceptance Criteria:**
 - Touch-optimized interface with appropriate button sizes
-- Dark mode enabled by default with consistent theming
+- Light, Dark, or System made options available with consistent theming 
 - Responsive design works on phones, tablets, and desktop
 - Single-tap access to start new journal conversation
 
@@ -118,10 +120,11 @@ To democratize access to personalized mental health and self-reflection tools by
 
 **User Interface Elements:**
 - Chat window with message history
-- Text input field for user messages
+- Multi line text input field for user messages
 - Three action buttons: "Go Deeper", "Finish Entry", "Cancel"
 - Message styling distinguishing user vs. AI messages
 - Typing indicators for AI processing
+- Streaming response content builds message as it arrives
 
 **Functional Requirements:**
 - Single active conversation enforcement
@@ -144,7 +147,7 @@ To democratize access to personalized mental health and self-reflection tools by
 - Entry list with dates, titles, and preview summaries
 - Entry detail view with full conversation and summary
 - Journal selection dropdown
-- Search functionality within entries
+- Search functionality within journal across entries
 
 **Functional Requirements:**
 - Automatic entry creation upon conversation completion
@@ -179,6 +182,7 @@ To democratize access to personalized mental health and self-reflection tools by
 - Improved AI response quality over time
 - No additional user actions required
 - Transparent operation with optional visibility
+- Ability to turn off RAG feature at individual journal level
 
 #### **3.1.4 Privacy & Security Architecture**
 **Feature Description:** Complete local data processing with no external personal data transmission
