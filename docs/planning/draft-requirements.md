@@ -9,7 +9,7 @@ The goal is to create a client-side, journaling application with a chat-based in
 ### **AI Chat Interface**
 
 * **Conversation-Based Journaling**: The central view is a chat window. The AI acts as a conversational guide, helping users delve into their thoughts.  
-* **Conversation Flow**: Users can only have **one active, unfinished entry at any given time.** A new conversation can only be started if there is no current, unfinalized conversation. A conversation is considered finalized when the AI generates a summary. Once a chat is finalized, it cannot be resumed.  
+* **Conversation Flow**: Users can have **multiple active, unfinished entries (drafts) at any given time.** New conversations can be started and saved as drafts. A conversation is considered finalized when the AI generates a summary. Once a chat is finalized, it cannot be resumed. **Only finalized entries are searchable and part of the RAG system.**  
 * **AI Persona**: The AI will adopt a supportive persona based on Cognitive Behavioral Therapy (CBT) principles. It should guide the user toward deeper introspection and, when relevant, provide insights into trends and patterns based on past entries. At the end of each session, it will generate a concise summary. The summaries will be written from the AI's perspective and address the user directly as "you" instead of "user."  
 * **Gemini API Integration**: The application will use the Gemini API for all AI responses and summary generation.  
 * **User Interaction**: The chat interface includes a text input and three buttons:  
@@ -22,7 +22,7 @@ The goal is to create a client-side, journaling application with a chat-based in
 * **Automatic Entry Creation**: A new journal entry is automatically created for each finished conversation, with the AI-generated summary as its core content. This summary, along with the full conversation, will be stored for historical review and RAG purposes.  
 * **Multiple Journals**: Users can create multiple journals for the separation of concerns, for example, a "Work" journal and a "Personal" journal.  
 * **Historical View**: Users can view a chronological list of their past journal entries in a collapsible panel.  
-* **Resuming Conversations**: The app must allow users to load and continue any unfinished conversation. However, finalized conversations cannot be resumed.  
+* **Resuming Conversations**: The app must allow users to load and continue any unfinished draft conversation. However, finalized conversations cannot be resumed.  
 * **Entry Accessibility**: Previous entries must be accessible from a collapsible panel on the left side of the UI, similar to a chat assistant interface.
 
 ### **User Interface (UI)**
@@ -35,11 +35,11 @@ The goal is to create a client-side, journaling application with a chat-based in
 
 ### **Retrieval-Augmented Generation (RAG)**
 
-* The AI will be able to reference and incorporate information from previous journal entries to provide more relevant responses and insights into trends, growth, and patterns.  
+* The AI will be able to reference and incorporate information from previous **finalized** journal entries to provide more relevant responses and insights into trends, growth, and patterns. **Draft entries are not included in RAG until they are finalized.**  
 * **High-Level RAG Plan**:  
   * **1\. Embedding Generation:** When a user finalizes a conversation, the application will use the Gemini API's embedContent endpoint to generate a vector embedding of the entry's summary.  
-  * **2\. Vector Search:** When the user sends a new message, the application will generate an embedding for that message and perform an in-memory vector similarity search (using cosine similarity) against the stored summary embeddings to find the most relevant past entries.  
-  * **3\. Context Injection:** The summaries of the most relevant past entries will be included in the prompt sent to the Gemini API, providing the AI with additional context to formulate its response.  
+  * **2\. Vector Search:** When the user sends a new message, the application will generate an embedding for that message and perform an in-memory vector similarity search (using cosine similarity) against the stored summary embeddings from **finalized entries only** to find the most relevant past entries.  
+  * **3\. Context Injection:** The summaries of the most relevant past **finalized** entries will be included in the prompt sent to the Gemini API, providing the AI with additional context to formulate its response.  
 * All retrieval and processing will be handled on the client-side.
 
 ## **3\. Technology Stack**

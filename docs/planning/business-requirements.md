@@ -90,7 +90,7 @@ The Local Journal application addresses the growing need for accessible, private
 #### **5.1.2 Conversation Management**
 - **Business Need**: Create structured, meaningful reflection sessions
 - **Requirements**:
-  - Enforce single active conversation to maintain focus
+  - Allow multiple draft conversations for flexible journaling
   - Guided conversation flow that leads to actionable insights
   - Clear session completion with summary generation
   - Prevention of conversation abandonment through confirmation dialogs
