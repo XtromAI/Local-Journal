@@ -619,9 +619,9 @@ class RAGEngine {
     final queryEmbedding = await _apiClient.embedContent(query);
     final queryVector = Vector.fromList(queryEmbedding);
     
-    // Get stored entries with embeddings
+    // Get stored entries with embeddings - only finalized entries are used for RAG
     final entries = await _entryRepository.getEntriesForJournal(journalId);
-    final validEntries = entries.where((e) => e.summaryEmbedding.isNotEmpty).toList();
+    final validEntries = entries.where((e) => e.summaryEmbedding.isNotEmpty && e.isCompleted).toList();
     
     if (validEntries.isEmpty) return [];
     

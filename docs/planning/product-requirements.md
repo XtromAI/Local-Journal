@@ -41,7 +41,7 @@ To democratize access to personalized mental health and self-reflection tools by
 - As a user, I want confirmation before ending or canceling so that I don't lose my progress accidentally
 
 **Acceptance Criteria:**
-- Only one active conversation allowed at a time
+- Multiple draft conversations supported for flexible journaling
 - AI responses appear within 3 seconds
 - Conversation history displays chronologically within session
 - Summary generation triggered by explicit user action with confirmation
@@ -111,7 +111,7 @@ To democratize access to personalized mental health and self-reflection tools by
 - Touch-optimized interface with appropriate button sizes
 - Light, Dark, or System made options available with consistent theming 
 - Responsive design works on phones, tablets, and desktop
-- Single-tap access to start new journal conversation
+- Access to draft and finalized entries from collapsible side panel
 
 ## **3. Feature Specifications**
 
@@ -129,7 +129,7 @@ To democratize access to personalized mental health and self-reflection tools by
 - Streaming response content builds message as it arrives
 
 **Functional Requirements:**
-- Single active conversation enforcement
+- Multiple draft conversation support with easy switching
 - Real-time message display and history
 - AI response generation using Gemini API
 - CBT-based guidance and questioning
@@ -368,8 +368,8 @@ To democratize access to personalized mental health and self-reflection tools by
 ### **5.1 Core Functionality Acceptance**
 
 #### **5.1.1 Conversation Flow**
-- [ ] User can start a new journal conversation with one tap
-- [ ] Only one active conversation allowed at a time
+- [ ] User can start new journal conversations and manage multiple drafts
+- [ ] Multiple draft conversations supported for flexible journaling
 - [ ] AI responds with contextually appropriate CBT-based guidance
 - [ ] User can continue conversation with "Go Deeper" button
 - [ ] Conversation completion requires explicit "Finish Entry" action
@@ -378,10 +378,11 @@ To democratize access to personalized mental health and self-reflection tools by
 
 #### **5.1.2 Historical Access**
 - [ ] All completed entries accessible from side panel
+- [ ] Draft conversations clearly separated from finalized entries
 - [ ] Entries display chronologically with clear date/time stamps
 - [ ] Full conversation and summary viewable for each entry
-- [ ] Search functionality finds relevant past entries
-- [ ] AI incorporates relevant historical context in new conversations
+- [ ] Search functionality finds relevant past finalized entries
+- [ ] AI incorporates relevant historical context only from finalized entries in new conversations
 
 #### **5.1.3 Multi-Journal Organization**
 - [ ] Users can create and name multiple journals
@@ -447,7 +448,7 @@ To democratize access to personalized mental health and self-reflection tools by
 **Goal:** Core journaling functionality with basic AI guidance
 
 **Features Include:**
-- Single journal with conversation-based interface
+- Multiple journal support with draft and finalized entry management
 - Basic AI responses with CBT principles
 - Local storage and entry management
 - Mobile-optimized UI with dark mode
