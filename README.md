@@ -91,7 +91,9 @@ Local Journal is designed with privacy as the foundation:
 
 ## 🤝 Contributing
 
-This is currently a solo design project. Feedback on the architecture and product direction is welcome!
+Interested in contributing to Local Journal? We welcome feedback on the architecture and product direction! Please read our [Contributing Guidelines](CONTRIBUTING.md) before getting started.
+
+This project follows our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## 📄 License
 
