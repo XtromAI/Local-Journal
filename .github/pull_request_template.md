@@ -21,7 +21,7 @@
 
 ## Checklist
 
-- [ ] I have read the [Contributing Guidelines](../CONTRIBUTING.md)
+- [ ] I have read the [Contributing Guidelines](CONTRIBUTING.md)
 - [ ] My changes follow the project's documentation style
 - [ ] I have checked for spelling and grammar errors
 - [ ] All links in my changes are valid

@@ -137,7 +137,7 @@ lib/
 |-------|------|-------------|
 | id | Integer (auto) | Primary key |
 | geminiApiKey | String (encrypted) | User's API key |
-| theme | String | Theme preference (dark/light/system) |
+| theme | String | Theme preference (default: dark) |
 | preferences | Map | Additional user preferences |
 | updatedAt | DateTime | Last update timestamp |
 
@@ -191,7 +191,7 @@ The application uses a **hierarchical provider structure**:
 | Parameter | Value | Purpose |
 |-----------|-------|---------|
 | Model | gemini-pro | Text generation |
-| Embedding Model | embedding-001 | 768-dimensional vectors |
+| Embedding Model | models/embedding-001 | 768-dimensional vectors |
 | Temperature | 0.7 | Balanced creativity/consistency |
 | Max Output Tokens | 1024 | Response length limit |
 
