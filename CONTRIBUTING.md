@@ -59,10 +59,6 @@ For documentation changes:
 
 If you have questions about contributing, feel free to open an issue with the `question` label.
 
-## Code of Conduct
-
-Please note that this project has a [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you agree to abide by its terms.
-
 ---
 
 Thank you for helping make Local Journal better! 🙏
