@@ -21,16 +21,6 @@ Local Journal is designed with privacy and security as core principles:
 - **Secure API Key Storage**: Flutter Secure Storage for API key management
 - **Minimal Data Transmission**: Only AI prompts sent to Gemini API (no personal journal content in identifiable form)
 
-## Reporting a Vulnerability
-
-Although there is no code implementation yet, we take security seriously. If you discover a security concern in our design documents or architecture:
-
-1. **Do not** open a public issue
-2. **Email** the maintainers directly (contact information to be provided)
-3. **Include** as much detail as possible about the concern
-
-We will acknowledge receipt within 48 hours and provide a detailed response within 7 days.
-
 ## Supported Versions
 
 | Version | Supported          |

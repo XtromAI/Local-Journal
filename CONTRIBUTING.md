@@ -1,6 +1,6 @@
 # Contributing to Local Journal
 
-Thank you for your interest in contributing to Local Journal! This project is currently a design concept and portfolio item, so contributions are focused on documentation, design feedback, and architectural discussions.
+Thank you for your interest in contributing to Local Journal! This project is currently a design concept, so contributions are focused on documentation, design feedback, and architectural discussions.
 
 ## Project Status
 

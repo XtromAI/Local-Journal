@@ -97,6 +97,8 @@ Interested in contributing to Local Journal? We welcome feedback on the architec
 
 This project design is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0) - see the [LICENSE](LICENSE) file for details.
 
+Commercial use is allowed with a separate licensing arrangement. Please contact the author for inquiries.
+
 ## 🌟 Vision
 
 Local Journal aims to democratize access to intelligent personal growth tools while setting a new standard for privacy in the digital wellness space. By proving that powerful AI assistance doesn't require sacrificing personal privacy, we hope to inspire a new generation of privacy-respecting applications.
