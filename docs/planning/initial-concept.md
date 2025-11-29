@@ -1,4 +1,10 @@
-# **Local Journal: AI Powered Personal Growth Journal App Requirements**
+# **Local Journal: Initial Concept Document**
+
+> **Note:** This document represents the initial project concept and early requirements gathering. For the complete and current specifications, please refer to the [Business Requirements](business-requirements.md), [Product Requirements](product-requirements.md), and [Technical Requirements](technical-requirements.md) documents.
+
+---
+
+## **Original Project Requirements**
 
 ## **1\. Project Overview**
 

@@ -91,11 +91,11 @@ Local Journal is designed with privacy as the foundation:
 
 ## 🤝 Contributing
 
-This is currently a solo design project. Feedback on the architecture and product direction is welcome!
+Interested in contributing to Local Journal? We welcome feedback on the architecture and product direction! Please read our [Contributing Guidelines](CONTRIBUTING.md) before getting started.
 
 ## 📄 License
 
-This project design is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project design is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0) - see the [LICENSE](LICENSE) file for details.
 
 ## 🌟 Vision
 
