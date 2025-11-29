@@ -309,6 +309,7 @@ The AI acts as a supportive journaling companion based on **Cognitive Behavioral
 **Main Page:**
 - App bar with journal selector and menu
 - Chat interface (scrollable message list)
+- **Message Rendering**: Markdown support (bold, italic, lists) and Emoji rendering
 - Chat controls (input field + action buttons)
 - Collapsible side panel for historical entries
 

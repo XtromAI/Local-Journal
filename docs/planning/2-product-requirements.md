@@ -125,6 +125,7 @@ To democratize access to personalized mental health and self-reflection tools by
 - Multi line text input field for user messages
 - Three action buttons: "Go Deeper", "Finish Entry", "Cancel"
 - Message styling distinguishing user vs. AI messages
+- **Rich Text Support**: Rendering of Markdown formatting (bold, lists, code blocks) and Emojis
 - Typing indicators for AI processing
 - Streaming response content builds message as it arrives
 
