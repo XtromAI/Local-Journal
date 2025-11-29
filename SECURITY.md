@@ -19,7 +19,7 @@ Local Journal is designed with privacy and security as core principles:
 
 - **Encrypted Local Database**: Isar database with encryption for sensitive data
 - **Secure API Key Storage**: Flutter Secure Storage for API key management
-- **Minimal Data Transmission**: Only AI prompts sent to Gemini API (no personal journal content in identifiable form)
+- **Minimal Data Transmission**: Data transmission is strictly limited to AI interactions (no background syncing or cloud backup)
 
 ## Supported Versions
 

@@ -68,6 +68,7 @@ Designed with modern, privacy-focused technologies in mind:
 - Google Gemini API key
 
 ### Installation (Planned)
+> **Note:** These steps are for the future implementation.
 1. Clone the repository
 2. Install dependencies: `flutter pub get`
 3. Run the application: `flutter run`
