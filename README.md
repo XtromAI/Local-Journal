@@ -3,10 +3,18 @@
 > **Privacy-First AI-Powered Journaling for Personal Growth**
 
 > [!NOTE]
-> **Project Status: Design Concept & Portfolio Item**
+> **Project Status: Design Concept**
 > This repository represents a comprehensive **system design and product specification** for a privacy-focused AI journaling application. It demonstrates product thinking, architectural planning, and technical documentation. **No executable code is currently implemented.**
 
 Local Journal is a concept for an intelligent journaling application that provides AI-guided self-reflection while keeping all personal data completely private on the device.
+
+## About This Project
+
+This project was inspired by my experience journaling with the Rosebud app. While I found its AI-assisted features valuable for exploring topics and recognizing patterns, I was uncomfortable storing such sensitive personal data with third parties—despite the app's privacy and encryption focus.
+
+This repository is currently a conceptual design. Further scrutiny may reveal barriers to maintaining equivalent service and security with offline storage. However, it represents a well-developed concept ready for evaluation and potential implementation.
+
+- Xtrom
 
 ## 📂 Design Documentation
 
@@ -21,7 +29,6 @@ This project is defined by three core planning documents that detail the busines
 - **Local-Only Processing**: All journal entries stay on the device
 - **No Cloud Storage**: Zero personal data transmitted to external servers
 - **Encrypted Storage**: Secure local database with encryption for sensitive data
-- **Offline Capable**: Full functionality without internet connection (except AI responses)
 
 ## ✨ Planned Features
 
@@ -99,11 +106,3 @@ Interested in contributing to Local Journal? We welcome feedback on the architec
 This project design is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0) - see the [LICENSE](LICENSE) file for details.
 
 Commercial use is allowed with a separate licensing arrangement. Please contact the author for inquiries.
-
-## 🌟 Vision
-
-Local Journal aims to democratize access to intelligent personal growth tools while setting a new standard for privacy in the digital wellness space. By proving that powerful AI assistance doesn't require sacrificing personal privacy, we hope to inspire a new generation of privacy-respecting applications.
-
----
-
-**Your thoughts, your device, your privacy. Always.**
