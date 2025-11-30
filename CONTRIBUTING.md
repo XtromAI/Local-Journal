@@ -2,10 +2,6 @@
 
 Thank you for your interest in contributing to Local Journal! This project is currently a design concept, so contributions are focused on documentation, design feedback, and architectural discussions.
 
-## Project Status
-
-> **Note:** Local Journal is currently in the **design and planning phase**. There is no executable code at this time. Contributions are welcome in the areas outlined below.
-
 ## How to Contribute
 
 ### Design Feedback
@@ -58,7 +54,3 @@ For documentation changes:
 ## Questions?
 
 If you have questions about contributing, feel free to open an issue with the `question` label.
-
----
-
-Thank you for helping make Local Journal better! 🙏
